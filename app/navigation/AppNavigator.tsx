@@ -8,6 +8,7 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
 
 // Main App Screens
+import ExpensesScreen from '../screens/main/ExpensesScreen';
 import GroupsScreen from '../screens/main/GroupsScreen';
 import HomeScreen from '../screens/main/HomeScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
@@ -29,7 +30,11 @@ function MainTabs() {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Groups') {
             iconName = focused ? 'people' : 'people-outline';
-          } else if (route.name === 'Transactions') {
+            }else if (route.name === 'Expenses') {
+                iconName = focused ? 'cash' : 'cash-outline';
+            }
+          
+          else if (route.name === 'Transactions') {
             iconName = focused ? 'swap-horizontal' : 'swap-horizontal-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
@@ -68,6 +73,13 @@ function MainTabs() {
         component={GroupsScreen}
         options={{
           tabBarLabel: 'Groups',
+        }}
+      />
+      <Tab.Screen 
+        name="Expenses" 
+        component={ExpensesScreen}
+        options={{
+          tabBarLabel: 'Expenses',
         }}
       />
       <Tab.Screen 
