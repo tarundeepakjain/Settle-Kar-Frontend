@@ -19,7 +19,7 @@ export default function GroupList() {
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.item} onPress={() => handlePress(item)}>
             <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.arrow}>{}</Text>
+            <Text style={styles.arrow}>{'>'}</Text>
           </TouchableOpacity>
         )}
       />
