@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
 interface ExpenseProps {
   title: string;
@@ -26,33 +26,32 @@ export default function Expenses({ title, amount, paidBy }: ExpenseProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#F5F5F5', // dark like your screenshot
+    backgroundColor: "#F5F5F5",
     padding: 12,
     marginBottom: 12,
     borderRadius: 10,
   },
   row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   leftSection: {
-    flexDirection: 'column',
+    flexDirection: "column",
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#424242',
+    fontWeight: "600",
+    color: "#040101ff",
   },
   paidBy: {
     fontSize: 12,
-    color: '#757575',
+    color: "#757575",
     marginTop: 2,
   },
   amount: {
     fontSize: 19,
-    fontWeight: 'bold',
-    color: 'gray200',
-    textAlign: 'right',
+    color: "#0a1005ff",
+    textAlign: "right",
   },
 });
