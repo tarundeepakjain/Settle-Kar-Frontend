@@ -1,11 +1,29 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 export default function HomeScreen() {
   return (
-    <View className="flex-1 justify-center items-center bg-gray-100">
-      <Text className="text-2xl font-bold text-gray-800">Home Screen</Text>
-      <Text className="text-gray-600 mt-2">Welcome to SettleKar</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Home Screen</Text>
+      <Text style={styles.subtitle}>Welcome to SettleKar</Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6', // gray-100 equivalent
+  },
+  title: {
+    fontSize: 24, // text-2xl equivalent
+    fontWeight: 'bold',
+    color: '#1f2937', // gray-800 equivalent
+  },
+  subtitle: {
+    color: '#4b5563', // gray-600 equivalent
+    marginTop: 8, // mt-2 equivalent
+  },
+});

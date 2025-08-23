@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
+import { StyleSheet } from 'react-native';
 
 // Auth Screens
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -47,18 +48,8 @@ function MainTabs() {
         tabBarActiveTintColor: '#2563eb',
         tabBarInactiveTintColor: 'gray',
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: 'white',
-          borderTopWidth: 1,
-          borderTopColor: '#e5e7eb',
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-        },
+        tabBarStyle: styles.tabBar,
+        tabBarLabelStyle: styles.tabBarLabel,
       })}
     >
       <Tab.Screen 
@@ -115,3 +106,18 @@ export default function AppNavigator() {
     </Stack.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: 'white',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingBottom: 5,
+    paddingTop: 5,
+    height: 60,
+  },
+  tabBarLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+});

@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function SignupScreen() {
   const [name, setName] = useState("");
@@ -20,15 +20,15 @@ export default function SignupScreen() {
   };
 
   return (
-    <View className="flex-1 justify-center items-center bg-gray-100 px-6">
-      <View className="w-full max-w-sm">
-        <Text className="text-3xl font-bold text-center mb-8 text-gray-800">
+    <View style={styles.container}>
+      <View style={styles.formContainer}>
+        <Text style={styles.title}>
           Create Account
         </Text>
         
-        <View className="space-y-4">
+        <View style={styles.form}>
           <TextInput
-            className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-800"
+            style={styles.input}
             placeholder="Full Name"
             placeholderTextColor="#9CA3AF"
             value={name}
@@ -37,7 +37,7 @@ export default function SignupScreen() {
           />
 
           <TextInput
-            className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-800"
+            style={styles.input}
             placeholder="Enter Email"
             placeholderTextColor="#9CA3AF"
             value={email}
@@ -47,7 +47,7 @@ export default function SignupScreen() {
           />
           
           <TextInput
-            className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-800"
+            style={styles.input}
             placeholder="Enter Password"
             placeholderTextColor="#9CA3AF"
             value={password}
@@ -56,7 +56,7 @@ export default function SignupScreen() {
           />
 
           <TextInput
-            className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-800"
+            style={styles.input}
             placeholder="Confirm Password"
             placeholderTextColor="#9CA3AF"
             value={confirmPassword}
@@ -65,19 +65,19 @@ export default function SignupScreen() {
           />
           
           <TouchableOpacity
-            className="bg-blue-500 py-3 px-4 rounded-lg mt-6"
+            style={styles.signupButton}
             onPress={handleSignup}
           >
-            <Text className="text-white text-center font-semibold text-lg">
+            <Text style={styles.signupButtonText}>
               Sign Up
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="py-3 px-4 rounded-lg"
+            style={styles.loginButton}
             onPress={handleBackToLogin}
           >
-            <Text className="text-blue-500 text-center font-semibold text-lg">
+            <Text style={styles.loginButtonText}>
               Already have an account? Login
             </Text>
           </TouchableOpacity>
@@ -86,3 +86,61 @@ export default function SignupScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6', // gray-100 equivalent
+    paddingHorizontal: 24, // px-6 equivalent
+  },
+  formContainer: {
+    width: '100%',
+    maxWidth: 384, // max-w-sm equivalent
+  },
+  title: {
+    fontSize: 30, // text-3xl equivalent
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 32, // mb-8 equivalent
+    color: '#1f2937', // gray-800 equivalent
+  },
+  form: {
+    gap: 16, // space-y-4 equivalent
+  },
+  input: {
+    width: '100%',
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#d1d5db', // gray-300 equivalent
+    borderRadius: 8, // rounded-lg equivalent
+    paddingHorizontal: 16, // px-4 equivalent
+    paddingVertical: 12, // py-3 equivalent
+    color: '#1f2937', // gray-800 equivalent
+  },
+  signupButton: {
+    backgroundColor: '#3b82f6', // blue-500 equivalent
+    paddingVertical: 12, // py-3 equivalent
+    paddingHorizontal: 16, // px-4 equivalent
+    borderRadius: 8, // rounded-lg equivalent
+    marginTop: 24, // mt-6 equivalent
+  },
+  signupButtonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontWeight: '600', // font-semibold equivalent
+    fontSize: 18, // text-lg equivalent
+  },
+  loginButton: {
+    paddingVertical: 12, // py-3 equivalent
+    paddingHorizontal: 16, // px-4 equivalent
+    borderRadius: 8, // rounded-lg equivalent
+  },
+  loginButtonText: {
+    color: '#3b82f6', // blue-500 equivalent
+    textAlign: 'center',
+    fontWeight: '600', // font-semibold equivalent
+    fontSize: 18, // text-lg equivalent
+  },
+});
