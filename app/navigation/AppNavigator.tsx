@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import { StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Auth Screens
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -10,6 +11,7 @@ import SignupScreen from '../screens/auth/SignupScreen';
 
 // Main App Screens
 import ExpensesScreen from '../screens/main/ExpensesScreen';
+import GroupDetailsScreen from '../screens/main/GroupDetailsScreen';
 import GroupsScreen from '../screens/main/GroupsScreen';
 import HomeScreen from '../screens/main/HomeScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
@@ -20,10 +22,13 @@ const Tab = createBottomTabNavigator();
 
 // Bottom Tab Navigator for main app
 function MainTabs() {
+  const insets = useSafeAreaInsets();
+  
   return (
     <Tab.Navigator
       initialRouteName="Home"
       screenOptions={({ route }) => ({
+        keyboardHidesTabBar: true, // hides tab bar when keyboard is open
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap;
 
@@ -31,11 +36,9 @@ function MainTabs() {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Groups') {
             iconName = focused ? 'people' : 'people-outline';
-            }else if (route.name === 'Expenses') {
+          } else if (route.name === 'Expenses') {
                 iconName = focused ? 'cash' : 'cash-outline';
-            }
-          
-          else if (route.name === 'Transactions') {
+          } else if (route.name === 'Transactions') {
             iconName = focused ? 'swap-horizontal' : 'swap-horizontal-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
@@ -48,7 +51,13 @@ function MainTabs() {
         tabBarActiveTintColor: '#2563eb',
         tabBarInactiveTintColor: 'gray',
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            height: 60 + insets.bottom,
+            paddingBottom: insets.bottom,
+          },
+        ],
         tabBarLabelStyle: styles.tabBarLabel,
       })}
     >
@@ -103,6 +112,7 @@ export default function AppNavigator() {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
       <Stack.Screen name="MainTabs" component={MainTabs} />
+      <Stack.Screen name="GroupDetails" component={GroupDetailsScreen} />
     </Stack.Navigator>
   );
 }
@@ -112,9 +122,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-    paddingBottom: 5,
     paddingTop: 5,
-    height: 60,
   },
   tabBarLabel: {
     fontSize: 12,
