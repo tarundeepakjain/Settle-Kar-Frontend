@@ -13,7 +13,7 @@ export default function HomeScreen() {
       {open && (
         <View style={styles.options}>
           <TouchableOpacity style={styles.optionButton}>
-            <Text style={styles.optionText}>Ot 1</Text>
+            <Text style={styles.optionText}>Opt 1</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.optionButton}>
             <Text style={styles.optionText}>Opt 2</Text>
@@ -21,7 +21,6 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Floating Action Button */}
       <TouchableOpacity style={styles.fab} onPress={() => setOpen(!open)}>
         <Ionicons name={open ? 'close' : 'add'} size={28} color="white" />
       </TouchableOpacity>
