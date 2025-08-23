@@ -1,23 +1,117 @@
 [
     {
       "id": "1",
-      "name": "Friends"
+      "name": "Friends",
+      "members": [
+        { "id": "f1", "name": "John" },
+        { "id": "f2", "name": "Sarah" },
+        { "id": "f3", "name": "Mike" },
+        { "id": "f4", "name": "Emma" }
+      ],
+      "expenses": [
+        {
+          "id": "1",
+          "title": "Dinner at Restaurant",
+          "amount": 1200,
+          "paidById": "f1",
+          "splitBetweenIds": ["f1", "f2", "f3", "f4"]
+        },
+        {
+          "id": "2",
+          "title": "Movie Tickets",
+          "amount": 800,
+          "paidById": "f2",
+          "splitBetweenIds": ["f1", "f2", "f3"]
+        },
+        {
+          "id": "3",
+          "title": "Coffee",
+          "amount": 300,
+          "paidById": "f3",
+          "splitBetweenIds": ["f1", "f3", "f4"]
+        }
+      ]
     },
     {
       "id": "2",
-      "name": "Family"
+      "name": "Family",
+      "members": [
+        { "id": "fa1", "name": "Mom" },
+        { "id": "fa2", "name": "Dad" },
+        { "id": "fa3", "name": "Sister" },
+        { "id": "fa4", "name": "Brother" }
+      ],
+      "expenses": [
+        {
+          "id": "4",
+          "title": "Groceries",
+          "amount": 2500,
+          "paidById": "fa1",
+          "splitBetweenIds": ["fa1", "fa2", "fa3", "fa4"]
+        },
+        {
+          "id": "5",
+          "title": "Electricity Bill",
+          "amount": 1800,
+          "paidById": "fa2",
+          "splitBetweenIds": ["fa1", "fa2"]
+        }
+      ]
     },
     {
       "id": "3",
-      "name": "College"
+      "name": "College",
+      "members": [
+        { "id": "c1", "name": "Alex" },
+        { "id": "c2", "name": "Priya" },
+        { "id": "c3", "name": "Rahul" }
+      ],
+      "expenses": [
+        {
+          "id": "6",
+          "title": "Study Materials",
+          "amount": 500,
+          "paidById": "c1",
+          "splitBetweenIds": ["c1", "c2", "c3"]
+        }
+      ]
     },
     {
       "id": "4",
-      "name": "Work"
+      "name": "Work",
+      "members": [
+        { "id": "w1", "name": "Manager" },
+        { "id": "w2", "name": "Employee1" },
+        { "id": "w3", "name": "Employee2" },
+        { "id": "w4", "name": "Employee3" }
+      ],
+      "expenses": [
+        {
+          "id": "7",
+          "title": "Team Lunch",
+          "amount": 1500,
+          "paidById": "w1",
+          "splitBetweenIds": ["w1", "w2", "w3", "w4"]
+        }
+      ]
     },
     {
       "id": "5",
-      "name": "Gym Buddies"
+      "name": "Gym Buddies",
+      "members": [
+        { "id": "g1", "name": "Tom" },
+        { "id": "g2", "name": "Jerry" },
+        { "id": "g3", "name": "Spike" }
+      ],
+      "expenses": [
+        {
+          "id": "8",
+          "title": "Protein Shakes",
+          "amount": 600,
+          "paidById": "g1",
+          "splitBetweenIds": ["g1", "g2", "g3"]
+        }
+      ]
     }
   ]
   
