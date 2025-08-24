@@ -1,21 +1,38 @@
-// screens/GroupDetails.tsx
-import { useState } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
-import Balances from "../../components/Balances";
-import Expenses from "../../components/Expenses";
-import GroupName from "../../components/GroupName";
-import TabButton from "../../components/TabButton";
+import AddExpenseModal from "../../components/AddExpenseModal";
+import { TouchableOpacity, Text, View, FlatList, StyleSheet } from "react-native";
+import React, { useEffect, useState } from "react";
+import Balances from "@/app/components/Balances";
+import GroupName from "@/app/components/GroupName";
+import TabButton from "@/app/components/TabButton";
+import Expenses from "@/app/components/Expenses";
+import { getGroups, updateGroupExpenses } from "@/app/utils/storage";
 
 export default function GroupDetails({ route }: { route: any }) {
   const [activeTab, setActiveTab] = useState<"Expenses" | "Balances">("Expenses");
-  const { group } = route.params; 
+  const [modalVisible, setModalVisible] = useState(false);
+  const [expenses, setExpenses] = useState(route.params.group.expenses || []);
+  const { group } = route.params;
+
+   useEffect(() => {
+    const loadGroup = async () => {
+      const groups = await getGroups();
+      const current = groups.find((g: any) => g.id === group.id);
+      setExpenses(current?.expenses || []);
+    };
+    loadGroup();
+  }, [group.id]);
+
+  const handleAddExpense = async (expense: any) => {
+    console.log('expense: ', expense);
+    const newExpenses = [...expenses, expense];
+    setExpenses(newExpenses);
+    await updateGroupExpenses(group.id, newExpenses);
+  };
 
   return (
     <View style={styles.container}>
-      {/* Group Header */}
       <GroupName name={group.name} />
 
-      {/* Top Navigation Tabs */}
       <View style={styles.tabRow}>
         <TabButton
           label="Expenses"
@@ -29,33 +46,42 @@ export default function GroupDetails({ route }: { route: any }) {
         />
       </View>
 
-      {/* Content Area */}
       <View style={styles.content}>
         {activeTab === "Expenses" ? (
-          <FlatList
-          data={group.expenses}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => {
-            const paidByMember = group.members.find((m: any) => m.id === item.paidById);
-        
-            const splitNames = item.splitBetweenIds
-              ?.map((id: string) => group.members.find((m: any) => m.id === id)?.name || "")
-              .join(", ");
-        
-            return (
-              <Expenses 
-                title={item.title}
-                amount={item.amount}
-                paidBy={paidByMember?.name || ''}
-              />
-            );
-          }}
-        />
-        
+          <>
+            <FlatList
+              data={expenses}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => {
+                const paidByMember = group.members.find((m: any) => m.id === item.paidById );
+                return (
+                  <Expenses
+                    title={item.title}
+                    amount={item.amount}
+                    paidBy={paidByMember?.name || ""}
+                  />
+                );
+              }}
+            />
+
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setModalVisible(true)}
+            >
+              <Text style={styles.addButtonText}>+ Add Expense</Text>
+            </TouchableOpacity>
+          </>
         ) : (
           <Balances groups={group} />
         )}
       </View>
+
+      <AddExpenseModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onSave={handleAddExpense}
+        members={group.members}
+      />
     </View>
   );
 }
@@ -92,9 +118,20 @@ const styles = StyleSheet.create({
     borderColor: "#f1f5f9",
   },
   title: {
+    fontWeight: "bold", fontSize: 18, marginBottom: 8, color: "#1e293b",
+  },
+  addButton: {
+    position: "absolute",
+    right: 20,
+    bottom: 30,
+    backgroundColor: "#007aff", // blue-500
+    borderRadius: 50,
+    padding: 16,
+    elevation: 6,
+  },
+  addButtonText: {
+    color: "#fff",
+    fontSize: 16,
     fontWeight: "bold",
-    fontSize: 18,
-    marginBottom: 8,
-    color: "#1e293b",
   },
 });

@@ -1,17 +1,54 @@
 import { useNavigation } from "@react-navigation/native";
-import React from "react";
-import { FlatList, StyleSheet, Text, TouchableOpacity } from "react-native";
-import groups from "../../utils/groups.json"; // Import the JSON
+import React, { useEffect, useState } from "react";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import groupsData from "../../utils/groups.json";
+import { Ionicons } from "@expo/vector-icons";
+import NewGroupModal from "@/app/components/NewGroupModal";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function GroupList() {
-    const navigation = useNavigation<any>(); // Get navigation object
-  
-    const handlePress = (group: any) => {
-      // Navigate to "GroupDetails" screen and pass the group
-      navigation.navigate("GroupDetails", { group });
+  const navigation = useNavigation<any>(); // Get navigation object
+  const [groups, setGroups] = useState(groupsData);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const handlePress = (group: any) => {
+    navigation.navigate("GroupDetails", { group });
+  };
+
+  const handleAddGroup = () => {
+    setModalVisible(true);
+  };
+
+  const handleCreateGroup = async (name: string) => {
+    const newGroup = {
+      id: Date.now().toString(),
+      name,
+      members: [],
+      expenses: [],
     };
-  
-    return (
+
+    setGroups([...groups, newGroup]);
+    await AsyncStorage.setItem("groups", JSON.stringify([...groups, newGroup]));
+    setModalVisible(false);
+
+    navigation.navigate("GroupDetails", { group: newGroup });
+  };
+
+  useEffect(() => {
+    const loadGroups = async () => {
+      const saved = await AsyncStorage.getItem("groups");
+      if (saved) {
+        setGroups(JSON.parse(saved));
+      } else {
+        setGroups(groupsData); // fallback to initial JSON
+      }
+    };
+    loadGroups();
+  }, []);
+
+
+  return (
+    <View style={{ flex: 1 }}>
       <FlatList
         data={groups}
         keyExtractor={(item) => item.id}
@@ -23,8 +60,19 @@ export default function GroupList() {
           </TouchableOpacity>
         )}
       />
-    );
-  }
+
+      <TouchableOpacity style={styles.addButton} onPress={handleAddGroup}>
+        <Ionicons name="add" size={32} color="white" />
+      </TouchableOpacity>
+
+      <NewGroupModal
+        visible={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        onCreate={handleCreateGroup}
+      />
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   listContainer: {
@@ -58,7 +106,16 @@ const styles = StyleSheet.create({
   },
   arrow: {
     fontSize: 20,
-    color: "rgba(0,0,0,0.3)",   
+    color: "rgba(0,0,0,0.3)",
     fontWeight: "bold",
+  },
+  addButton: {
+    position: "absolute",
+    right: 20,
+    bottom: 30,
+    backgroundColor: "#007aff", // blue-500
+    borderRadius: 50,
+    padding: 16,
+    elevation: 6,
   },
 });
