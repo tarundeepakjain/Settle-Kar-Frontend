@@ -1,17 +1,23 @@
 import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
+type RootStackParamList = {
+  MainTabs: undefined;
+  // Add other routes here if needed
+};
 
 export default function SignupScreen() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const navigation = useNavigation();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   const handleSignup = () => {
     // Navigate to MainTabs after successful signup
-    navigation.replace('MainTabs');
+    navigation.navigate('MainTabs');
   };
 
   const handleBackToLogin = () => {

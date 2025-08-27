@@ -5,11 +5,11 @@ import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-nativ
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
 
   const handleLogin = () => {
     // Navigate to MainTabs after successful login
-    navigation.replace('MainTabs');
+    navigation.navigate('MainTabs');
   };
 
   const handleSignup = () => {

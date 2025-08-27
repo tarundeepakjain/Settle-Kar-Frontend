@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "531457928111",
+    "project_id": "settlekar-5a938",
+    "storage_bucket": "settlekar-5a938.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:531457928111:android:8c0736fe4bde1dfb85dd5a",
+        "android_client_info": {
+          "package_name": "Settle_Kar.CS261"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAW7k3KC5TnIwB--2ViTOGBj0M1lgZUkho"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
