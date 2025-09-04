@@ -16,6 +16,10 @@ import GroupsScreen from '../screens/main/GroupsScreen';
 import HomeScreen from '../screens/main/HomeScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 import TransactionsScreen from '../screens/main/TransactionsScreen';
+import SettingsScreen from '../screens/main/SettingScreen';
+import LanguageScreen from '../screens/main/LanguageScreen';
+import CurrencyScreen from '../screens/main/CurrencyScreen';
+
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -37,7 +41,7 @@ function MainTabs() {
           } else if (route.name === 'Groups') {
             iconName = focused ? 'people' : 'people-outline';
           } else if (route.name === 'Expenses') {
-                iconName = focused ? 'cash' : 'cash-outline';
+            iconName = focused ? 'cash' : 'cash-outline';
           } else if (route.name === 'Transactions') {
             iconName = focused ? 'swap-horizontal' : 'swap-horizontal-outline';
           } else if (route.name === 'Profile') {
@@ -112,6 +116,9 @@ export default function AppNavigator() {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
       <Stack.Screen name="MainTabs" component={MainTabs} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="Language" component={LanguageScreen} />
+      <Stack.Screen name="Currency" component={CurrencyScreen} />
       <Stack.Screen name="GroupDetails" component={GroupDetailsScreen} />
     </Stack.Navigator>
   );

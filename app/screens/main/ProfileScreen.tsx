@@ -3,7 +3,7 @@ import React, { useRef, useEffect } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View, Animated, Easing } from 'react-native';
 
 export default function ProfileScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const fluidAnimation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -40,6 +40,15 @@ export default function ProfileScreen() {
     ],
   });
 
+  const handlePress = (screenName: string) => {
+    if (screenName === 'Logout') {
+      // Handle logout logic here
+      console.log('User logged out.');
+    } else {
+      navigation.navigate(screenName);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Fluid motion background */}
@@ -62,16 +71,16 @@ export default function ProfileScreen() {
 
         {/* Options Section */}
         <View style={styles.optionsSection}>
-          <TouchableOpacity style={styles.optionButton}>
+          <TouchableOpacity style={styles.optionButton} onPress={() => handlePress('Settings')}>
             <Text style={styles.optionText}>Settings</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.optionButton}>
+          <TouchableOpacity style={styles.optionButton} onPress={() => handlePress('Language')}>
             <Text style={styles.optionText}>Language</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.optionButton}>
+          <TouchableOpacity style={styles.optionButton} onPress={() => handlePress('Currency')}>
             <Text style={styles.optionText}>Currency</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.optionButton, styles.logoutButton]}>
+          <TouchableOpacity style={[styles.optionButton, styles.logoutButton]} onPress={() => handlePress('Logout')}>
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </View>
@@ -159,8 +168,8 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   logoutButton: {
-    backgroundColor: "rgba(255, 69, 58, 0.15)", // A subtle reddish background
-    borderColor: "rgba(255, 69, 58, 0.3)", // A subtle reddish border
+    backgroundColor: "rgba(255, 69, 58, 0.15)",
+    borderColor: "rgba(255, 69, 58, 0.3)",
     borderWidth: StyleSheet.hairlineWidth,
   },
   logoutText: {
