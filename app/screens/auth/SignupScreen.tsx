@@ -1,19 +1,49 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, Animated, Easing } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import type { StackNavigationProp } from '@react-navigation/stack';
-import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-
-type RootStackParamList = {
-  MainTabs: undefined;
-  // Add other routes here if needed
-};
 
 export default function SignupScreen() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<any>();
+
+  const fluidAnimation = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(fluidAnimation, {
+        toValue: 1,
+        duration: 25000,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      })
+    ).start();
+  }, [fluidAnimation]);
+
+  const getAnimatedStyle = (start: number, end: number) => ({
+    transform: [
+      {
+        translateX: fluidAnimation.interpolate({
+          inputRange: [0, 1],
+          outputRange: [start, end],
+        }),
+      },
+      {
+        translateY: fluidAnimation.interpolate({
+          inputRange: [0, 1],
+          outputRange: [end, start],
+        }),
+      },
+      {
+        scale: fluidAnimation.interpolate({
+          inputRange: [0, 0.5, 1],
+          outputRange: [1, 1.2, 1],
+        }),
+      },
+    ],
+  });
 
   const handleSignup = () => {
     // Navigate to MainTabs after successful signup
@@ -27,66 +57,76 @@ export default function SignupScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.formContainer}>
-        <Text style={styles.title}>
-          Create Account
-        </Text>
-        
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Full Name"
-            placeholderTextColor="#9CA3AF"
-            value={name}
-            onChangeText={setName}
-            autoCapitalize="words"
-          />
+      {/* Fluid motion background */}
+      <View style={styles.background}>
+        <Animated.View style={[styles.fluidBlob, styles.blob1, getAnimatedStyle(0, 100)]} />
+        <Animated.View style={[styles.fluidBlob, styles.blob2, getAnimatedStyle(100, -50)]} />
+        <Animated.View style={[styles.fluidBlob, styles.blob3, getAnimatedStyle(-50, 150)]} />
+      </View>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Enter Email"
-            placeholderTextColor="#9CA3AF"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+      {/* Signup Form Container */}
+      <View style={styles.contentWrapper}>
+        <View style={styles.formContainer}>
+          <Text style={styles.title}>
+            Create Account
+          </Text>
           
-          <TextInput
-            style={styles.input}
-            placeholder="Enter Password"
-            placeholderTextColor="#9CA3AF"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+          <View style={styles.form}>
+            <TextInput
+              style={styles.input}
+              placeholder="Full Name"
+              placeholderTextColor="#9CA3AF"
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+            />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm Password"
-            placeholderTextColor="#9CA3AF"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-          />
-          
-          <TouchableOpacity
-            style={styles.signupButton}
-            onPress={handleSignup}
-          >
-            <Text style={styles.signupButtonText}>
-              Sign Up
-            </Text>
-          </TouchableOpacity>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Email"
+              placeholderTextColor="#9CA3AF"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Password"
+              placeholderTextColor="#9CA3AF"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
 
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={handleBackToLogin}
-          >
-            <Text style={styles.loginButtonText}>
-              Already have an account? Login
-            </Text>
-          </TouchableOpacity>
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm Password"
+              placeholderTextColor="#9CA3AF"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+            />
+            
+            <TouchableOpacity
+              style={styles.signupButton}
+              onPress={handleSignup}
+            >
+              <Text style={styles.signupButtonText}>
+                Sign Up
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={handleBackToLogin}
+            >
+              <Text style={styles.loginButtonText}>
+                Already have an account? Login
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </View>
@@ -96,57 +136,100 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#0a1421',
+  },
+  background: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  fluidBlob: {
+    position: 'absolute',
+    borderRadius: 500,
+  },
+  blob1: {
+    width: 350,
+    height: 350,
+    backgroundColor: 'rgba(46, 134, 222, 0.2)',
+    top: -50,
+    left: -50,
+  },
+  blob2: {
+    width: 400,
+    height: 400,
+    backgroundColor: 'rgba(230, 126, 34, 0.1)',
+    bottom: -100,
+    right: -100,
+  },
+  blob3: {
+    width: 500,
+    height: 500,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    top: '30%',
+    left: '10%',
+  },
+  contentWrapper: {
+    flex: 1,
+    position: 'relative',
+    zIndex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6', // gray-100 equivalent
-    paddingHorizontal: 24, // px-6 equivalent
   },
   formContainer: {
-    width: '100%',
-    maxWidth: 384, // max-w-sm equivalent
+    width: '90%',
+    maxWidth: 400,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
   },
   title: {
-    fontSize: 30, // text-3xl equivalent
+    fontSize: 28,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 32, // mb-8 equivalent
-    color: '#1f2937', // gray-800 equivalent
+    marginBottom: 30,
+    color: '#fff',
   },
   form: {
-    gap: 16, // space-y-4 equivalent
+    gap: 16,
   },
   input: {
     width: '100%',
-    backgroundColor: 'white',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: '#d1d5db', // gray-300 equivalent
-    borderRadius: 8, // rounded-lg equivalent
-    paddingHorizontal: 16, // px-4 equivalent
-    paddingVertical: 12, // py-3 equivalent
-    color: '#1f2937', // gray-800 equivalent
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: '#fff',
   },
   signupButton: {
-    backgroundColor: '#3b82f6', // blue-500 equivalent
-    paddingVertical: 12, // py-3 equivalent
-    paddingHorizontal: 16, // px-4 equivalent
-    borderRadius: 8, // rounded-lg equivalent
-    marginTop: 24, // mt-6 equivalent
+    backgroundColor: '#2e86de',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    marginTop: 24,
   },
   signupButtonText: {
     color: 'white',
     textAlign: 'center',
-    fontWeight: '600', // font-semibold equivalent
-    fontSize: 18, // text-lg equivalent
+    fontWeight: '600',
+    fontSize: 18,
   },
   loginButton: {
-    paddingVertical: 12, // py-3 equivalent
-    paddingHorizontal: 16, // px-4 equivalent
-    borderRadius: 8, // rounded-lg equivalent
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
   },
   loginButtonText: {
-    color: '#3b82f6', // blue-500 equivalent
+    color: '#fff',
     textAlign: 'center',
-    fontWeight: '600', // font-semibold equivalent
-    fontSize: 18, // text-lg equivalent
+    fontWeight: '600',
+    fontSize: 16,
   },
 });
