@@ -118,26 +118,16 @@ export default function LoginScreen() {
 
             <View style={styles.socialButtonsContainer}>
               <TouchableOpacity style={[styles.socialButton, styles.googleButton]}>
-                <Image
-                  source={{ uri: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/512px-Google_%22G%22_logo.svg.png" }}
-                  style={styles.socialIcon}
-                />
-                <Text style={styles.socialButtonText}>Google</Text>
+                <Ionicons name="logo-google" size={25} color="#000000ff" />
               </TouchableOpacity>
-
               <TouchableOpacity style={[styles.socialButton, styles.linkedinButton]}>
-                <Ionicons name="logo-linkedin" size={20} color="white" style={styles.socialIcon} />
-                <Text style={[styles.socialButtonText, { color: 'white' }]}>LinkedIn</Text>
+                <Ionicons name="logo-linkedin" size={25} color="#fff" />
               </TouchableOpacity>
-            </View>
-            <View style={styles.socialButtonsContainer}>
               <TouchableOpacity style={[styles.socialButton, styles.xButton]}>
-                <Ionicons name="logo-twitter" size={20} color="white" style={styles.socialIcon} />
-                <Text style={styles.socialButtonText}>X</Text>
+                <Ionicons name="logo-twitter" size={25} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity style={[styles.socialButton, styles.facebookButton]}>
-                <Ionicons name="logo-facebook" size={20} color="white" style={styles.socialIcon} />
-                <Text style={[styles.socialButtonText, { color: 'white' }]}>Facebook</Text>
+                <Ionicons name="logo-facebook" size={25} color="#fff" />
               </TouchableOpacity>
             </View>
 
@@ -325,36 +315,37 @@ const styles = StyleSheet.create({
   },
   socialButton: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   socialIcon: {
-    width: 20,
-    height: 20,
-    marginRight: 8,
+    width: 25,
+    height: 25,
   },
   socialButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+    marginLeft: 8,
   },
   googleButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: '#fff',
+    borderColor: '#E0E0E0',
+  },
+  googleButtonText: {
+    color: '#000',
   },
   linkedinButton: {
     backgroundColor: '#0077B5',
     borderColor: '#0077B5',
   },
   xButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#000',
+    borderColor: '#000',
   },
   facebookButton: {
     backgroundColor: '#1877F2',

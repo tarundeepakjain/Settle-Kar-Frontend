@@ -64,10 +64,10 @@ export default function ProfileScreen() {
       <SafeAreaView style={styles.contentWrapper}>
         <View style={styles.profileSection}>
           <Image
-            source={{ uri: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Sadu_Kathmandu_Pashupatinath_2006_Luca_Galuzzi.jpg/500px-Sadu_Kathmandu_Pashupatinath_2006_Luca_Galuzzi.jpg" }}
+            source={{ uri: "https://cdn.pixabay.com/photo/2020/11/19/15/32/sculpture-5758884_1280.jpg" }}
             style={styles.profileImage}
           />
-          <Text style={styles.name}>Dev Sadhu</Text>
+          <Text style={styles.name}>Dev</Text>
         </View>
 
         <View style={styles.optionsSection}>
