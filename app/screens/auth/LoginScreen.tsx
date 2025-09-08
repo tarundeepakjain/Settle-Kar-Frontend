@@ -2,13 +2,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View, Animated, Easing, SafeAreaView, Platform, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { getAuth,signInWithPopup,GoogleAuthProvider } from "firebase/auth";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation<any>();
-  
+  const provider = new GoogleAuthProvider();
+  const auth=getAuth();
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -43,6 +45,28 @@ export default function LoginScreen() {
     navigation.navigate('Signup');
   };
 
+  const handleGoogleLogin = () => {
+    signInWithPopup(auth, provider)
+    .then((result) => {
+        // This gives you a Google Access Token. You can use it to access the Google API.
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        const token = credential ? credential.accessToken : null;
+        // The signed-in user info.
+        const user = result.user;
+        navigation.navigate('MainTabs');
+        // IdP data available using getAdditionalUserInfo(result)
+        // ...
+      }).catch((error) => {
+        // Handle Errors here.
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        // The email of the user's account used.
+        const email = error.customData.email;
+        // The AuthCredential type that was used.
+        const credential = GoogleAuthProvider.credentialFromError(error);
+        // ...
+      });
+  };
   return (
     <View style={styles.container}>
       {/* Animated Background Elements */}
@@ -117,7 +141,7 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             <View style={styles.socialButtonsContainer}>
-              <TouchableOpacity style={[styles.socialButton, styles.googleButton]}>
+              <TouchableOpacity style={[styles.socialButton, styles.googleButton]} onPress={handleGoogleLogin}>
                 <Ionicons name="logo-google" size={25} color="#000000ff" />
               </TouchableOpacity>
               <TouchableOpacity style={[styles.socialButton, styles.linkedinButton]}>

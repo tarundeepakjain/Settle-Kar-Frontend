@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View, Animated, Easing, SafeAreaView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { getAuth,signInWithPopup,GoogleAuthProvider } from "firebase/auth";
+import { navigate } from 'expo-router/build/global-state/routing';
 
 export default function SignupScreen() {
   const [name, setName] = useState("");
@@ -10,6 +12,8 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation<any>();
+  const provider = new GoogleAuthProvider();
+  const auth=getAuth();
   
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
 
@@ -33,10 +37,31 @@ export default function SignupScreen() {
     }],
     animationDelay: `${delay}ms`,
   });
-
-  const handleSignup = () => {
-    // Navigate to MainTabs after successful signup
+  const handleSignup = () =>{
+    //Signup Button handle
     navigation.navigate('MainTabs');
+  };
+  const handleGoogleSignup = () => {
+    signInWithPopup(auth, provider)
+    .then((result) => {
+        // This gives you a Google Access Token. You can use it to access the Google API.
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        const token = credential ? credential.accessToken : null;
+        // The signed-in user info.
+        const user = result.user;
+        navigation.navigate('MainTabs');
+        // IdP data available using getAdditionalUserInfo(result)
+        // ...
+      }).catch((error) => {
+        // Handle Errors here.
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        // The email of the user's account used.
+        const email = error.customData.email;
+        // The AuthCredential type that was used.
+        const credential = GoogleAuthProvider.credentialFromError(error);
+        // ...
+      });
   };
 
   const handleBackToLogin = () => {
@@ -144,7 +169,12 @@ export default function SignupScreen() {
               <Ionicons name="wallet-outline" size={16} color="black" style={styles.buttonIcon} />
               <Text style={styles.signupButtonText}>Sign Up</Text>
             </TouchableOpacity>
-
+            
+            <TouchableOpacity style={styles.signupButton} onPress={handleGoogleSignup}>
+              <Ionicons name="wallet-outline" size={16} color="black" style={styles.buttonIcon} />
+              <Text style={styles.signupButtonText}>SignIn With Google</Text>
+            </TouchableOpacity>
+            
             <TouchableOpacity onPress={handleBackToLogin}>
               <Text style={styles.loginText}>
                 Already have an account? <Text style={styles.loginLink}>Login</Text>
