@@ -6,20 +6,18 @@ export default function Balances({ groups }: { groups: any }) {
   function calculateBalances(group: any) {
     const members = group.members;
   
-    // Step 1: Initialize everyone with balance = 0
+    
     const netBalances: Record<string, number> = {};
     members.forEach((member: any) => {
       netBalances[member.id] = 0;
     });
   
-    // Step 2: Loop over expenses and calculate
     group.expenses.forEach((expense: any) => {
       const splitAmount = expense.amount / expense.splitBetweenIds.length;
   
-      // The person who paid gets credited
+      
       netBalances[expense.paidById] += expense.amount;
   
-      // Each person in splitBetweenIds owes their share
       expense.splitBetweenIds.forEach((personId: string) => {
         netBalances[personId] -= splitAmount;
       });
