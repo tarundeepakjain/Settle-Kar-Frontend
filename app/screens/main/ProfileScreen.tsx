@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
 import {
   Image,
   StyleSheet,
@@ -61,7 +61,6 @@ export default function ProfileScreen() {
 
   const handlePress = (screenName: string) => {
     if (screenName === "Logout") {
-      // Handle logout logic here
       console.log("User logged out.");
     } else {
       navigation.navigate(screenName);
@@ -72,10 +71,9 @@ export default function ProfileScreen() {
     <View style={styles.container}>
       {/* Enhanced Animated Background */}
       <View style={styles.background}>
-        {/* Gradient Overlay */}
         <View style={styles.gradientOverlay} />
 
-        {/* Floating Icons with Glow */}
+        {/* Floating Icons */}
         <Animated.View
           style={[
             styles.floatingIcon,
@@ -142,7 +140,7 @@ export default function ProfileScreen() {
           />
         </Animated.View>
 
-        {/* Enhanced Gradient Orbs */}
+        {/* Gradient Orbs */}
         <View style={[styles.orb, styles.orb1]}>
           <View style={styles.orbInner} />
         </View>
@@ -159,13 +157,9 @@ export default function ProfileScreen() {
         <Animated.View
           style={[
             styles.profileSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
-            },
+            { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
           ]}
         >
-          {/* Profile Image Container with Glow */}
           <View style={styles.profileImageContainer}>
             <View style={styles.profileImageGlow} />
             <View style={styles.profileImageBorder}>
@@ -176,25 +170,16 @@ export default function ProfileScreen() {
                 style={styles.profileImage}
               />
             </View>
-            {/* Status Indicator */}
             <View style={styles.statusIndicator}>
               <View style={styles.statusDot} />
             </View>
           </View>
-
           <Text style={styles.name}>Dev</Text>
           <View style={styles.nameDivider} />
           <Text style={styles.userEmail}>dev@settlekar.com</Text>
         </Animated.View>
 
-        <Animated.View
-          style={[
-            styles.optionsSection,
-            {
-              opacity: fadeAnim,
-            },
-          ]}
-        >
+        <Animated.View style={[styles.optionsSection, { opacity: fadeAnim }]}>
           <TouchableOpacity
             style={styles.optionButton}
             onPress={() => handlePress("Settings")}
@@ -272,7 +257,6 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Version Info */}
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>SettleKar v1.0.0</Text>
         </View>
@@ -282,39 +266,23 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0a1421",
-  },
-  background: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: "hidden",
-  },
+  container: { flex: 1, backgroundColor: "#0a1421" },
+  background: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
   gradientOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "transparent",
   },
-  floatingIcon: {
-    position: "absolute",
-  },
-  iconGlow: {
-    ...Platform.select({
-      ios: {
-        shadowColor: "#FFD700",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.6,
-        shadowRadius: 15,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-  orb: {
-    position: "absolute",
-    borderRadius: 9999,
-    opacity: 0.12,
-  },
+  floatingIcon: { position: "absolute" },
+  iconGlow: Platform.select({
+    ios: {
+      shadowColor: "#FFD700",
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.6,
+      shadowRadius: 15,
+    },
+    android: { elevation: 8 },
+  }),
+  orb: { position: "absolute", borderRadius: 9999, opacity: 0.12 },
   orb1: {
     width: 200,
     height: 200,
@@ -358,23 +326,11 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: 9999,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: "rgba(255,255,255,0.1)",
   },
-  contentWrapper: {
-    flex: 1,
-    padding: 20,
-    position: "relative",
-    zIndex: 1,
-  },
-  profileSection: {
-    alignItems: "center",
-    marginTop: 40,
-    marginBottom: 40,
-  },
-  profileImageContainer: {
-    position: "relative",
-    marginBottom: 20,
-  },
+  contentWrapper: { flex: 1, padding: 20, position: "relative", zIndex: 1 },
+  profileSection: { alignItems: "center", marginTop: 40, marginBottom: 40 },
+  profileImageContainer: { position: "relative", marginBottom: 20 },
   profileImageGlow: {
     position: "absolute",
     width: 140,
@@ -391,15 +347,13 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.4,
         shadowRadius: 25,
       },
-      android: {
-        elevation: 12,
-      },
+      android: { elevation: 12 },
     }),
   },
   profileImageBorder: {
     padding: 4,
     borderRadius: 65,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(255,255,255,0.1)",
     borderWidth: 2,
     borderColor: "#FFD700",
     ...Platform.select({
@@ -409,16 +363,10 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 10,
       },
-      android: {
-        elevation: 8,
-      },
+      android: { elevation: 8 },
     }),
   },
-  profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-  },
+  profileImage: { width: 120, height: 120, borderRadius: 60 },
   statusIndicator: {
     position: "absolute",
     bottom: 8,
@@ -451,7 +399,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#fff",
     letterSpacing: 0.5,
-    textShadowColor: "rgba(255, 215, 0, 0.3)",
+    textShadowColor: "rgba(255,215,0,0.3)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
   },
@@ -463,19 +411,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 8,
   },
-  userEmail: {
-    fontSize: 14,
-    color: "#a0a0a0",
-    letterSpacing: 0.3,
-  },
-  optionsSection: {
-    flex: 1,
-    gap: 12,
-  },
+  userEmail: { fontSize: 14, color: "#a0a0a0", letterSpacing: 0.3 },
+  optionsSection: { flex: 1, gap: 12 },
   optionButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: "rgba(255,255,255,0.08)",
     paddingVertical: 16,
     paddingHorizontal: 16,
     borderRadius: 16,
@@ -485,38 +426,36 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.12)",
+    borderColor: "rgba(255,255,255,0.12)",
     gap: 12,
   },
   optionIconContainer: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: "rgba(255,255,255,0.08)",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: "rgba(255,255,255,0.1)",
   },
   settingsIcon: {
-    backgroundColor: "rgba(255, 215, 0, 0.15)",
-    borderColor: "rgba(255, 215, 0, 0.3)",
+    backgroundColor: "rgba(255,215,0,0.15)",
+    borderColor: "rgba(255,215,0,0.3)",
   },
   languageIcon: {
-    backgroundColor: "rgba(100, 181, 246, 0.15)",
-    borderColor: "rgba(100, 181, 246, 0.3)",
+    backgroundColor: "rgba(100,181,246,0.15)",
+    borderColor: "rgba(100,181,246,0.3)",
   },
   currencyIcon: {
-    backgroundColor: "rgba(150, 230, 161, 0.15)",
-    borderColor: "rgba(150, 230, 161, 0.3)",
+    backgroundColor: "rgba(150,230,161,0.15)",
+    borderColor: "rgba(150,230,161,0.3)",
   },
   logoutIcon: {
-    backgroundColor: "rgba(255, 107, 107, 0.15)",
-    borderColor: "rgba(255, 107, 107, 0.3)",
+    backgroundColor: "rgba(255,107,107,0.15)",
+    borderColor: "rgba(255,107,107,0.3)",
   },
-  optionTextContainer: {
-    flex: 1,
-  },
+  optionTextContainer: { flex: 1 },
   optionText: {
     fontSize: 17,
     fontWeight: "600",
@@ -526,12 +465,12 @@ const styles = StyleSheet.create({
   },
   optionSubtext: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.5)",
+    color: "rgba(255,255,255,0.5)",
     letterSpacing: 0.2,
   },
   logoutButton: {
-    backgroundColor: "rgba(255, 107, 107, 0.1)",
-    borderColor: "rgba(255, 107, 107, 0.25)",
+    backgroundColor: "rgba(255,107,107,0.1)",
+    borderColor: "rgba(255,107,107,0.25)",
     marginTop: 8,
   },
   logoutText: {
@@ -543,7 +482,7 @@ const styles = StyleSheet.create({
   },
   logoutSubtext: {
     fontSize: 12,
-    color: "rgba(255, 107, 107, 0.6)",
+    color: "rgba(255,107,107,0.6)",
     letterSpacing: 0.2,
   },
   versionContainer: {
@@ -553,7 +492,7 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.3)",
+    color: "rgba(255,255,255,0.3)",
     letterSpacing: 0.5,
   },
 });
