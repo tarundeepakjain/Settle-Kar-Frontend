@@ -108,7 +108,7 @@ function MainTabs() {
 export default function AppNavigator() {
   return (
     <Stack.Navigator
-      initialRouteName="Login"
+      initialRouteName="MainTabs"
       screenOptions={{
         headerShown: false,
       }}
