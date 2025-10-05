@@ -21,11 +21,11 @@ export default function GroupList() {
     navigation.navigate("GroupDetails", { group });
   const handleAddGroup = () => setModalVisible(true);
 
-  const handleCreateGroup = async (name: string) => {
+  const handleCreateGroup = async (name: string, members: any[]) => {
     const newGroup = {
       id: Date.now().toString(),
       name,
-      members: [],
+      members,
       expenses: [],
     };
     const updatedGroups = [...groups, newGroup];
@@ -55,7 +55,7 @@ export default function GroupList() {
             onPress={() => handlePress(item)}
           >
             <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.arrow}>{">"}</Text>
+            <Text style={styles.arrow}>&gt;</Text>
           </TouchableOpacity>
         )}
       />
@@ -68,6 +68,8 @@ export default function GroupList() {
         visible={modalVisible}
         onCancel={() => setModalVisible(false)}
         onCreate={handleCreateGroup}
+        currentUser={{ id: "user_1", name: "You" }}
+        existingGroups={groups}
       />
     </View>
   );
