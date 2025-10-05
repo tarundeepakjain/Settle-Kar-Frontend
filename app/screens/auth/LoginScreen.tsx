@@ -13,6 +13,29 @@ export default function LoginScreen() {
   const auth=getAuth();
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
 
+ const handleLogin=async()=>{
+      try {
+        const response = await fetch("http://192.168.1.3:5001/auth/login", {
+         method: 'POST',
+         headers: {
+           'Content-Type': 'application/json',
+         },
+         body: JSON.stringify({email,password}),
+         credentials: 'include',
+       });
+        if (response.ok) {
+         alert('User logged in succesfully!');
+          navigation.navigate('MainTabs');
+        
+       } 
+       else{
+         alert('Wrong password');
+       }
+ 
+      } catch (error) {
+       console.log(error);
+      }
+    }
   useEffect(() => {
     Animated.loop(
       Animated.timing(iconFloatAnim, {
@@ -35,10 +58,6 @@ export default function LoginScreen() {
     animationDelay: `${delay}ms`,
   });
 
-  const handleLogin = () => {
-    // Navigate to MainTabs after successful login
-    navigation.navigate('MainTabs');
-  };
 
   const handleSignup = () => {
     // Navigate to Signup screen

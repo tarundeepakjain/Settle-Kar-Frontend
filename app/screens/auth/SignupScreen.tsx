@@ -16,7 +16,26 @@ export default function SignupScreen() {
   const auth=getAuth();
   
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
+const handleSignup=async()=>{
+     try {
+       const response = await fetch("http://192.168.1.3:5001/auth", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({name,email,password}),
+        credentials: 'include',
+      });
+       if (response.ok) {
+        alert('User logged in succesfully!');
+         navigation.navigate('MainTabs');
+       
+      } 
 
+     } catch (error) {
+      console.log(error);
+     }
+   }
   useEffect(() => {
     Animated.loop(
       Animated.timing(iconFloatAnim, {
@@ -37,10 +56,7 @@ export default function SignupScreen() {
     }],
     animationDelay: `${delay}ms`,
   });
-  const handleSignup = () =>{
-    //Signup Button handle
-    navigation.navigate('MainTabs');
-  };
+
   const handleGoogleSignup = () => {
     signInWithPopup(auth, provider)
     .then((result) => {
