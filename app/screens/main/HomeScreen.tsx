@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { Path, Svg } from "react-native-svg";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function HomeScreen() {
   const [open, setOpen] = useState(false);         // FAB menu
@@ -21,7 +22,72 @@ export default function HomeScreen() {
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
   const fabRotateAnim = useRef(new Animated.Value(0)).current;
   const optionsAnim = useRef(new Animated.Value(0)).current;
+ const [name, setName] = useState(""); 
+   const fetchUserData = async () => {
+    try {
+      let accessToken = await AsyncStorage.getItem("accessToken");
+      const refreshToken = await AsyncStorage.getItem("refreshToken");
 
+      if (!accessToken) {
+        console.warn("No access token found, user might be logged out");
+        return;
+      }
+
+      let response = await fetch("https://settlekar.onrender.com/auth/me", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (response.status === 401) {
+        console.log("Access token expired, refreshing...");
+        const refreshed = await refreshAccessToken(refreshToken);
+        if (!refreshed) return;
+        accessToken = refreshed;
+        response = await fetch("https://settlekar.onrender.com/auth/me", {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+      }
+
+      const data = await response.json();
+      const userName = data.name || data.user?.name;
+if (!userName) {
+  console.warn("No name found in response");
+  return;
+}
+
+setName(userName);
+
+       
+    } catch (err) {
+      console.error("Error fetching user data:", err);
+    }
+  };
+
+  const refreshAccessToken = async (refreshToken: string | null) => {
+    if (!refreshToken) return null;
+    try {
+      const response = await fetch("https://settlekar.onrender.com/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) {
+        console.warn("Failed to refresh access token");
+        return null;
+      }
+
+      const data = await response.json();
+      await AsyncStorage.setItem("accessToken", data.accessToken);
+      await AsyncStorage.setItem("refreshToken", data.refreshToken);
+      return data.accessToken;
+    } catch (err) {
+      console.error("Error refreshing token:", err);
+      return null;
+    }
+  };
+  useEffect(() => {
+  fetchUserData();
+}, []);
   useEffect(() => {
     Animated.loop(
       Animated.timing(iconFloatAnim, {
@@ -173,7 +239,7 @@ export default function HomeScreen() {
 
           {/* Text */}
           <View style={styles.textContainer}>
-            <Text style={styles.greeting}>Hi Dev,</Text>
+            <Text style={styles.greeting}>Hi {name || "guest"},</Text>
             <View style={styles.divider} />
             <Text style={styles.subheader}>Welcome to SettleKar!</Text>
             <Text style={styles.tagline}>
@@ -351,7 +417,7 @@ const styles = StyleSheet.create({
     left: -10,
   },
   logo: {
-    tintColor: "#FFD700",
+    // Removed tintColor, as it's not valid for ViewStyle
   },
   textContainer: {
     alignItems: "center",

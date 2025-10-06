@@ -4,7 +4,8 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAuth,signInWithPopup,GoogleAuthProvider } from "firebase/auth";
 import { navigate } from 'expo-router/build/global-state/routing';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import API from '../../services/api';
 export default function SignupScreen() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -16,26 +17,31 @@ export default function SignupScreen() {
   const auth=getAuth();
   
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
-const handleSignup=async()=>{
-     try {
-       const response = await fetch("https://settlekar.onrender.com/auth", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({name,email,password}),
-        credentials: 'include',
-      });
-       if (response.ok) {
-        alert('User logged in succesfully!');
-         navigation.navigate('MainTabs');
-       
-      } 
+const handleSignup = async () => {
+  try {
+    const response = await fetch("https://settlekar.onrender.com/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password }),
+    });
+    const data = await response.json();
 
-     } catch (error) {
-      console.log(error);
-     }
-   }
+    if (response.ok) {
+      await AsyncStorage.setItem("accessToken", data.accessToken);
+      await AsyncStorage.setItem("refreshToken", data.refreshToken);
+      alert('Signup successful!');
+     
+      const meRes = await fetch("https://settlekar.onrender.com/auth/me", {
+        headers: { Authorization: `Bearer ${data.accessToken}` },
+      });
+      const userData = await meRes.json();
+      navigation.navigate("MainTabs");
+    }
+  } catch (err) {
+    console.log(err);
+  }
+};
+
   useEffect(() => {
     Animated.loop(
       Animated.timing(iconFloatAnim, {
