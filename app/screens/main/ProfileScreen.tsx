@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Alert,
+  Platform,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
@@ -122,24 +123,32 @@ export default function ProfileScreen() {
       return null;
     }
   };
-  
   const handleLogout = async () => {
-    Alert.alert("Logout", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: async () => {
-          await AsyncStorage.removeItem("accessToken");
-          await AsyncStorage.removeItem("refreshToken");
-          navigation.reset({
-            index: 0,
-            routes: [{ name: "Login" }],
-          });
-        },
-      },
-    ]);
-  };
+  const confirmLogout =
+    Platform.OS === "web"
+      ? window.confirm("Are you sure you want to logout?")
+      : await new Promise((resolve) =>
+          Alert.alert("Logout", "Are you sure you want to log out?", [
+            { text: "Cancel", onPress: () => resolve(false), style: "cancel" },
+            { text: "Logout", onPress: () => resolve(true), style: "destructive" },
+          ])
+        );
+
+  if (!confirmLogout) return;
+
+  try {
+    await AsyncStorage.removeItem("accessToken");
+    await AsyncStorage.removeItem("refreshToken");
+    console.log("cleared");
+
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "Login" }],
+    });
+  } catch (err) {
+    console.error("Logout failed:", err);
+  }
+};
 
   const UserCard = ({ name, email, profileImage }: any) => (
     <View style={styles.card}>
