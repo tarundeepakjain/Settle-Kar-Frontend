@@ -3,7 +3,8 @@ import { StyleSheet, Text, TextInput, TouchableOpacity, View, Animated, Easing, 
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAuth,signInWithPopup,GoogleAuthProvider } from "firebase/auth";
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import API from '../../services/api';
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -13,29 +14,27 @@ export default function LoginScreen() {
   const auth=getAuth();
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
 
- const handleLogin=async()=>{
-      try {
-        const response = await fetch("https://settlekar.onrender.com/auth/login", {
-         method: 'POST',
-         headers: {
-           'Content-Type': 'application/json',
-         },
-         body: JSON.stringify({email,password}),
-         credentials: 'include',
-       });
-        if (response.ok) {
-         alert('User logged in succesfully!');
-          navigation.navigate('MainTabs');
-        
-       } 
-       else{
-         alert('Wrong password');
-       }
- 
-      } catch (error) {
-       console.log(error);
-      }
+const handleLogin = async () => {
+  try {
+    const response = await API.post('/auth/login', { email, password });
+    
+    const { accessToken,refreshToken, user } = response.data;
+     await AsyncStorage.setItem("accessToken", accessToken);
+    await AsyncStorage.setItem("refreshToken", refreshToken);
+    await AsyncStorage.setItem("user", JSON.stringify(user));
+
+    alert('Login successful!');
+    navigation.navigate('MainTabs');
+  } catch (error) {
+    if (typeof error === 'object' && error !== null) {
+      const err = error as { response?: { data?: any }; message?: string };
+      console.log(err.response?.data || err.message);
+    } else {
+      console.log(String(error));
     }
+    alert('Invalid email or password');
+  }
+};
   useEffect(() => {
     Animated.loop(
       Animated.timing(iconFloatAnim, {
