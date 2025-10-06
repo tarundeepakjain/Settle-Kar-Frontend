@@ -1,21 +1,23 @@
+import Chatbot from "@/app/components/chatBot";
 import { Ionicons } from "@expo/vector-icons";
 import * as React from "react";
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  Animated,
+  Easing,
+  Platform,
+  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Animated,
-  Easing,
-  SafeAreaView,
-  Platform,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { Svg, Path } from "react-native-svg";
+import { Path, Svg } from "react-native-svg";
 
 export default function HomeScreen() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false);         // FAB menu
+  const [chatOpen, setChatOpen] = useState(false); // Chatbot
+
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
   const fabRotateAnim = useRef(new Animated.Value(0)).current;
   const optionsAnim = useRef(new Animated.Value(0)).current;
@@ -67,12 +69,11 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Enhanced Animated Background */}
+      {/* Background */}
       <View style={styles.background}>
-        {/* Gradient Overlay */}
         <View style={styles.gradientOverlay} />
 
-        {/* Floating Icons with Glow Effect */}
+        {/* Floating icons */}
         <Animated.View
           style={[
             styles.floatingIcon,
@@ -139,7 +140,7 @@ export default function HomeScreen() {
           />
         </Animated.View>
 
-        {/* Enhanced Gradient Orbs */}
+        {/* Orbs */}
         <View style={[styles.orb, styles.orb1]}>
           <View style={styles.orbInner} />
         </View>
@@ -151,10 +152,10 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Main Content Area */}
+      {/* Content */}
       <SafeAreaView style={styles.contentWrapper}>
         <View style={styles.centeredContent}>
-          {/* Logo with Backdrop */}
+          {/* Logo */}
           <View style={styles.logoContainer}>
             <View style={styles.logoBackdrop} />
             <Svg
@@ -163,7 +164,6 @@ export default function HomeScreen() {
               style={styles.logo}
               viewBox="0 0 120 120"
             >
-              {/* Replace the Path below with your actual SVG path data */}
               <Path
                 d="M60 10a50 50 0 1 1 0 100a50 50 0 1 1 0-100"
                 fill="#FFD700"
@@ -171,7 +171,7 @@ export default function HomeScreen() {
             </Svg>
           </View>
 
-          {/* Enhanced Text with Gradient */}
+          {/* Text */}
           <View style={styles.textContainer}>
             <Text style={styles.greeting}>Hi Dev,</Text>
             <View style={styles.divider} />
@@ -182,7 +182,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Enhanced Floating Options Menu */}
+        {/* Floating Options Menu */}
         {open && (
           <Animated.View
             style={[
@@ -227,12 +227,9 @@ export default function HomeScreen() {
           </Animated.View>
         )}
 
-        {/* Enhanced Floating Action Button */}
+        {/* FAB for menu */}
         <Animated.View
-          style={[
-            styles.fabContainer,
-            { transform: [{ rotate: fabRotation }] },
-          ]}
+          style={[styles.fabContainer, { transform: [{ rotate: fabRotation }] }]}
         >
           <TouchableOpacity
             style={styles.fab}
@@ -243,7 +240,25 @@ export default function HomeScreen() {
             <Ionicons name="add" size={32} color="#0a1421" />
           </TouchableOpacity>
         </Animated.View>
+
+        {/* NEW: Chatbot Button (bottom-left) */}
+        <Animated.View style={styles.chatFabContainer}>
+          <TouchableOpacity
+            style={styles.chatFab}
+            onPress={() => setChatOpen(true)}
+            activeOpacity={0.9}
+          >
+            <Ionicons
+              name="chatbubble-ellipses-outline"
+              size={28}
+              color="#0a1421"
+            />
+          </TouchableOpacity>
+        </Animated.View>
       </SafeAreaView>
+
+      {/* Chatbot */}
+      <Chatbot isChatOpen={chatOpen} onClose={() => setChatOpen(false)} />
     </View>
   );
 }
@@ -290,14 +305,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFD700",
     top: "15%",
     left: "10%",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#FFD700",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.4,
-        shadowRadius: 40,
-      },
-    }),
   },
   orb2: {
     width: 240,
@@ -305,14 +312,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#2e86de",
     bottom: "20%",
     right: "15%",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#2e86de",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.4,
-        shadowRadius: 50,
-      },
-    }),
   },
   orb3: {
     width: 160,
@@ -321,14 +320,6 @@ const styles = StyleSheet.create({
     top: "60%",
     left: "60%",
     opacity: 0.08,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#96E6A1",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.3,
-        shadowRadius: 30,
-      },
-    }),
   },
   orbInner: {
     width: "100%",
@@ -340,11 +331,6 @@ const styles = StyleSheet.create({
   contentWrapper: {
     flex: 1,
     padding: 20,
-    ...Platform.select({
-      web: {
-        paddingTop: 50,
-      },
-    }),
   },
   centeredContent: {
     flex: 1,
@@ -363,17 +349,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 215, 0, 0.1)",
     top: -10,
     left: -10,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#FFD700",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 20,
-      },
-      android: {
-        elevation: 10,
-      },
-    }),
   },
   logo: {
     tintColor: "#FFD700",
@@ -386,10 +361,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#fff",
     marginBottom: 12,
-    letterSpacing: 1,
-    textShadowColor: "rgba(255, 215, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 10,
   },
   divider: {
     width: 60,
@@ -397,27 +368,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFD700",
     borderRadius: 2,
     marginBottom: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#FFD700",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 8,
-      },
-    }),
   },
   subheader: {
     fontSize: 20,
     fontWeight: "600",
     color: "#e0e0e0",
     marginBottom: 8,
-    letterSpacing: 0.5,
   },
   tagline: {
     fontSize: 14,
     color: "#a0a0a0",
     fontStyle: "italic",
-    letterSpacing: 0.3,
   },
   fabContainer: {
     position: "absolute",
@@ -433,12 +394,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     elevation: 8,
-    shadowColor: "#FFD700",
-    shadowOpacity: 0.5,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    borderWidth: 2,
-    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   fabGlow: {
     position: "absolute",
@@ -463,14 +418,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 16,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.15)",
-    backdropFilter: "blur(10px)",
     gap: 12,
   },
   optionButton1: {
@@ -493,6 +440,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#fff",
-    letterSpacing: 0.3,
+  },
+  // 🔥 New Chatbot Button Styles
+  chatFabContainer: {
+    position: "absolute",
+    bottom: 30,
+    left: 30,
+    zIndex: 3,
+  },
+  chatFab: {
+    backgroundColor: "#64B5F6",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 6,
   },
 });
