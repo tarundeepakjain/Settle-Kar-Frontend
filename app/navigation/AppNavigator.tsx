@@ -58,7 +58,7 @@ function MainTabs() {
         },
         tabBarActiveTintColor: "#2563eb",
         tabBarInactiveTintColor: "gray",
-        headerShown: false,
+        headerShown: true,
         tabBarStyle: [
           styles.tabBar,
           {
@@ -103,9 +103,9 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator
       // choose initial route depending on SKIP_AUTH
-      initialRouteName={SKIP_AUTH ? "MainTabs" : "Login"}
+      initialRouteName={ "Login" }
       screenOptions={{
-        headerShown: false,
+        headerShown: true,
       }}
     >
       {/* Auth screens kept in stack so you can still navigate to them if needed */}
