@@ -17,6 +17,17 @@ export default function SignupScreen() {
   const auth=getAuth();
   
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const verifyUser = async () => {
+      const accessToken = await AsyncStorage.getItem("accessToken") || localStorage.getItem("accessToken");
+      if (accessToken) {
+        console.log("accces token found");
+        navigation.navigate("MainTabs"); 
+      } else {
+        navigation.navigate("Login");    }
+    };
+    verifyUser();
+  }, []);
 const handleSignup = async () => {
   try {
     const response = await fetch("https://settlekar.onrender.com/auth", {

@@ -13,7 +13,17 @@ export default function LoginScreen() {
   const provider = new GoogleAuthProvider();
   const auth=getAuth();
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
-
+useEffect(() => {
+  const verifyUser = async () => {
+    const accessToken = await AsyncStorage.getItem("accessToken") || localStorage.getItem("accessToken");
+    if (accessToken) {
+      console.log("accces token found");
+      navigation.navigate("MainTabs"); 
+    } else {
+      navigation.navigate("Login");    }
+  };
+  verifyUser();
+}, []);
 const handleLogin = async () => {
   try {
     const response = await API.post('/auth/login', { email, password });
