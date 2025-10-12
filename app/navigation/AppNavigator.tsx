@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Auth Screens
@@ -24,11 +24,10 @@ import CurrencyScreen from "../screens/main/CurrencyScreen";
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Toggle this to true to bypass auth and start in MainTabs during development.
-// Set to false (or remove) to restore auth flow.
+// Toggle to bypass auth in dev
 const SKIP_AUTH = true;
 
-// Bottom Tab Navigator for main app
+// Bottom Tabs Navigator
 function MainTabs() {
   const insets = useSafeAreaInsets();
 
@@ -36,24 +35,27 @@ function MainTabs() {
     <Tab.Navigator
       initialRouteName="Home"
       screenOptions={({ route }) => ({
-        keyboardHidesTabBar: true,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap;
-
-          if (route.name === "Home") {
-            iconName = focused ? "home" : "home-outline";
-          } else if (route.name === "Groups") {
-            iconName = focused ? "people" : "people-outline";
-          } else if (route.name === "Expenses") {
-            iconName = focused ? "cash" : "cash-outline";
-          } else if (route.name === "Transactions") {
-            iconName = focused ? "swap-horizontal" : "swap-horizontal-outline";
-          } else if (route.name === "Profile") {
-            iconName = focused ? "person" : "person-outline";
-          } else {
-            iconName = "home-outline";
+          switch (route.name) {
+            case "Home":
+              iconName = focused ? "home" : "home-outline";
+              break;
+            case "Groups":
+              iconName = focused ? "people" : "people-outline";
+              break;
+            case "Expenses":
+              iconName = focused ? "cash" : "cash-outline";
+              break;
+            case "Transactions":
+              iconName = focused ? "swap-horizontal" : "swap-horizontal-outline";
+              break;
+            case "Profile":
+              iconName = focused ? "person" : "person-outline";
+              break;
+            default:
+              iconName = "home-outline";
           }
-
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: "#2563eb",
@@ -69,51 +71,32 @@ function MainTabs() {
         tabBarLabelStyle: styles.tabBarLabel,
       })}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{ tabBarLabel: "Home" }}
-      />
-      <Tab.Screen
-        name="Groups"
-        component={GroupsScreen}
-        options={{ tabBarLabel: "Groups" }}
-      />
-      <Tab.Screen
-        name="Expenses"
-        component={ExpensesScreen}
-        options={{ tabBarLabel: "Expenses" }}
-      />
-      <Tab.Screen
-        name="Transactions"
-        component={TransactionsScreen}
-        options={{ tabBarLabel: "Transactions" }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ tabBarLabel: "Profile" }}
-      />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: "Home" }} />
+      <Tab.Screen name="Groups" component={GroupsScreen} options={{ tabBarLabel: "Groups" }} />
+      <Tab.Screen name="Expenses" component={ExpensesScreen} options={{ tabBarLabel: "Expenses" }} />
+      <Tab.Screen name="Transactions" component={TransactionsScreen} options={{ tabBarLabel: "Transactions" }} />
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: "Profile" }} />
     </Tab.Navigator>
   );
 }
 
-// Main App Navigator
+// Main App Stack Navigator
 export default function AppNavigator() {
   return (
     <Stack.Navigator
-      // choose initial route depending on SKIP_AUTH
-      initialRouteName={ "Login" }
-      screenOptions={{
-        headerShown: true,
-      }}
+      initialRouteName={SKIP_AUTH ? "MainTabs" : "Login"}
+      screenOptions={{ headerShown: true }}
     >
-      {/* Auth screens kept in stack so you can still navigate to them if needed */}
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Signup" component={SignupScreen} />
+      {/* Auth Screens */}
+      {!SKIP_AUTH && <Stack.Screen name="Login" component={LoginScreen} />}
+      {!SKIP_AUTH && <Stack.Screen name="Signup" component={SignupScreen} />}
 
-      {/* Main app */}
-      <Stack.Screen name="MainTabs" component={MainTabs} />
+      {/* Main App */}
+      <Stack.Screen
+        name="MainTabs"
+        component={MainTabs}
+        options={{ headerShown: false }} // hide header for tabs
+      />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="Language" component={LanguageScreen} />
       <Stack.Screen name="Currency" component={CurrencyScreen} />
@@ -128,6 +111,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#e5e7eb",
     paddingTop: 5,
+    ...Platform.select({
+      web: { position: "fixed", bottom: 0, width: "100%" },
+    }),
   },
   tabBarLabel: {
     fontSize: 12,

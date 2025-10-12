@@ -1,160 +1,156 @@
-import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Animated,
-  Easing,
-  Platform,
-  SafeAreaView,
-  StyleSheet,
-  Text,
   View,
+  Text,
+  FlatList,
+  ActivityIndicator,
+  Alert,
+  Button,
+  TextInput,
+  Modal,
+  TouchableOpacity,
 } from "react-native";
-import GroupList from "./GroupList";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
+
+type Member = {
+  _id: string;
+  name?: string;
+};
+
+type Group = {
+  _id: string;
+  name: string;
+  description?: string;
+  members: Member[];
+};
 
 export default function GroupsScreen() {
-  const iconFloatAnim = useRef(new Animated.Value(0)).current;
+  const navigation = useNavigation<any>(); // type as needed
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupDesc, setNewGroupDesc] = useState("");
+
+  const fetchGroups = async (): Promise<Group[] | undefined> => {
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      if (!token) {
+        Alert.alert("No token found. Please log in again.");
+        return;
+      }
+
+      const response = await fetch("http://localhost:5001/group/my-groups", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await response.json();
+      if (response.ok) return data as Group[];
+      else console.error("Failed to fetch groups:", data.message);
+    } catch (err) {
+      console.error("Error fetching groups:", err);
+    }
+  };
+
+  const createGroup = async () => {
+    try {
+      if (!newGroupName.trim()) {
+        Alert.alert("Group name required!");
+        return;
+      }
+
+      const token = await AsyncStorage.getItem("accessToken");
+      if (!token) {
+        Alert.alert("No token found. Please log in again.");
+        return;
+      }
+
+      const response = await fetch("http://localhost:5001/group/new", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: newGroupName, description: newGroupDesc }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        Alert.alert("Group created successfully!");
+        const updatedGroups = await fetchGroups();
+        if (updatedGroups) setGroups(updatedGroups);
+        setModalVisible(false);
+        setNewGroupName("");
+        setNewGroupDesc("");
+      } else {
+        Alert.alert("Error", data.message || "Failed to create group.");
+      }
+    } catch (err) {
+      console.error("Error creating group:", err);
+      Alert.alert("Error creating group");
+    }
+  };
 
   useEffect(() => {
-    Animated.loop(
-      Animated.timing(iconFloatAnim, {
-        toValue: 1,
-        duration: 3000,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      })
-    ).start();
-  }, [iconFloatAnim]);
+    const loadGroups = async () => {
+      const data = await fetchGroups();
+      if (data) setGroups(data);
+      setLoading(false);
+    };
+    loadGroups();
+  }, []);
 
-  const getFloatStyle = (delay: number) => ({
-    transform: [
-      {
-        translateY: iconFloatAnim.interpolate({
-          inputRange: [0, 0.5, 1],
-          outputRange: [0, -10, 0],
-        }),
-      },
-    ],
-    // @ts-ignore
-    animationDelay: `${delay}ms`,
-  });
+  if (loading) return <ActivityIndicator size="large" color="#000" style={{ flex: 1, justifyContent: "center" }} />;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.background}>
-        <Animated.View
-          style={[
-            styles.floatingIcon,
-            { left: "10%", top: "25%" },
-            getFloatStyle(0),
-          ]}
-        >
-          <Ionicons
-            name="people-outline"
-            size={30}
-            color="rgba(255, 255, 255, 0.3)"
-          />
-        </Animated.View>
-        <Animated.View
-          style={[
-            styles.floatingIcon,
-            { right: "15%", top: "20%" },
-            getFloatStyle(1000),
-          ]}
-        >
-          <Ionicons
-            name="cash-outline"
-            size={25}
-            color="rgba(255, 255, 255, 0.4)"
-          />
-        </Animated.View>
-        <Animated.View
-          style={[
-            styles.floatingIcon,
-            { left: "15%", bottom: "15%" },
-            getFloatStyle(500),
-          ]}
-        >
-          <Ionicons
-            name="wallet-outline"
-            size={28}
-            color="rgba(255, 255, 255, 0.35)"
-          />
-        </Animated.View>
-        <Animated.View
-          style={[
-            styles.floatingIcon,
-            { right: "10%", bottom: "30%" },
-            getFloatStyle(1500),
-          ]}
-        >
-          <Ionicons
-            name="star-outline"
-            size={20}
-            color="rgba(255, 255, 255, 0.5)"
-          />
-        </Animated.View>
-        <View style={[styles.orb, styles.orb1]} />
-        <View style={[styles.orb, styles.orb2]} />
-      </View>
+    <View style={{ flex: 1, padding: 16 }}>
+      <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 10 }}>My Groups</Text>
+      <Button title="➕ Create Group" onPress={() => setModalVisible(true)} />
 
-      <SafeAreaView style={styles.contentWrapper}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Groups</Text>
+      <FlatList
+        data={groups}
+        keyExtractor={(item) => item._id}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            onPress={() => navigation.navigate("GroupDetails", { groupId: item._id })}
+            style={{
+              marginVertical: 8,
+              padding: 12,
+              backgroundColor: "#f2f2f2",
+              borderRadius: 10,
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: "bold" }}>{item.name}</Text>
+            {item.description ? <Text style={{ color: "gray" }}>{item.description}</Text> : null}
+            <Text style={{ color: "gray" }}>Members: {item.members.length}</Text>
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={<Text style={{ color: "gray", textAlign: "center", marginTop: 20 }}>No groups found.</Text>}
+      />
+
+      {/* Create Group Modal */}
+      <Modal visible={modalVisible} transparent animationType="slide">
+        <View style={{ flex: 1, justifyContent: "center", backgroundColor: "rgba(0,0,0,0.4)", padding: 20 }}>
+          <View style={{ backgroundColor: "white", padding: 20, borderRadius: 10 }}>
+            <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>Create New Group</Text>
+            <TextInput
+              placeholder="Group Name"
+              value={newGroupName}
+              onChangeText={setNewGroupName}
+              style={{ borderWidth: 1, borderColor: "#ccc", padding: 10, marginBottom: 10, borderRadius: 5 }}
+            />
+            <TextInput
+              placeholder="Description"
+              value={newGroupDesc}
+              onChangeText={setNewGroupDesc}
+              style={{ borderWidth: 1, borderColor: "#ccc", padding: 10, marginBottom: 10, borderRadius: 5 }}
+            />
+            <Button title="Create" onPress={createGroup} />
+            <View style={{ marginTop: 10 }}>
+              <Button title="Cancel" color="red" onPress={() => setModalVisible(false)} />
+            </View>
+          </View>
         </View>
-        <View style={{ flex: 1 }}>
-          <GroupList />
-        </View>
-      </SafeAreaView>
+      </Modal>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0a1421" },
-  background: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
-  floatingIcon: { position: "absolute" },
-  orb: {
-    position: "absolute",
-    borderRadius: 9999,
-    opacity: 0.1,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-      },
-      android: { elevation: 5 },
-    }),
-  },
-  orb1: {
-    width: 120,
-    height: 120,
-    backgroundColor: "#FFD700",
-    top: "25%",
-    left: "25%",
-    transform: [{ translateX: -60 }, { translateY: -60 }],
-  },
-  orb2: {
-    width: 160,
-    height: 160,
-    backgroundColor: "#2e86de",
-    bottom: "25%",
-    right: "25%",
-    transform: [{ translateX: 80 }, { translateY: 80 }],
-  },
-  contentWrapper: { flex: 1, position: "relative", zIndex: 1, paddingTop: 60 },
-  header: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.2)",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#fff",
-    letterSpacing: 0.5,
-  },
-});
