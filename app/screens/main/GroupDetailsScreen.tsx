@@ -32,7 +32,7 @@ export default function GroupDetails({ route }: { route: any }) {
       const token = await AsyncStorage.getItem("accessToken");
       if (!token) return Alert.alert("No token found");
 
-      const res = await fetch(`http://localhost:5001/group/${groupId}`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`https://settlekar.onrender.com/group/${groupId}`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
 
       if (res.ok) {
@@ -70,7 +70,7 @@ export default function GroupDetails({ route }: { route: any }) {
       const token = await AsyncStorage.getItem("accessToken");
       if (!token) return;
 
-      const res = await fetch(`http://localhost:5001/group/${groupId}/expenses`, {
+      const res = await fetch(`https://settlekar.onrender.com/group/${groupId}/expenses`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),

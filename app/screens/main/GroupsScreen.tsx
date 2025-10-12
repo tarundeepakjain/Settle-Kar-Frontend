@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
-
+import API from '../../services/api';
 type Member = {
   _id: string;
   name?: string;
@@ -41,7 +41,7 @@ export default function GroupsScreen() {
         return;
       }
 
-      const response = await fetch("http://localhost:5001/group/my-groups", {
+      const response = await fetch("https://settlekar.onrender.com/group/my-groups", {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -67,7 +67,7 @@ export default function GroupsScreen() {
         return;
       }
 
-      const response = await fetch("http://localhost:5001/group/new", {
+      const response = await fetch("https://settlekar.onrender.com/group/new", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name: newGroupName, description: newGroupDesc }),
