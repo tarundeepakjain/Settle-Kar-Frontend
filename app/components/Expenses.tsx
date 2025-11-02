@@ -2,12 +2,15 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 interface ExpenseProps {
-  title: string;
-  amount: number;
-  paidBy: string;
+  title?: string;
+  amount?: number | string;
+  paidBy?: string;
 }
 
-export default function Expenses({ title, amount, paidBy }: ExpenseProps) {
+export default function Expenses({ title = "Untitled", amount = 0, paidBy = "Unknown" }: ExpenseProps) {
+  // ✅ Convert safely to number
+  const numericAmount = Number(amount) || 0;
+
   return (
     <View style={styles.card}>
       <View style={styles.row}>
@@ -18,7 +21,7 @@ export default function Expenses({ title, amount, paidBy }: ExpenseProps) {
         </View>
 
         {/* Right Side (Amount) */}
-        <Text style={styles.amount}>₹{amount.toFixed(2)}</Text>
+        <Text style={styles.amount}>₹{numericAmount.toFixed(2)}</Text>
       </View>
     </View>
   );

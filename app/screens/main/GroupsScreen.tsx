@@ -92,7 +92,7 @@ const fetchGroups = async (): Promise<Group[] | undefined> => {
     }
     let decoded = jwtDecode<MyJwtPayload>(token);
     
-          if (isTokenExpired(decoded)) {
+          while(isTokenExpired(decoded)) {
             console.log("⚠️ Access token expired, refreshing...");
             const newToken = await refreshAccessToken();
             if (!newToken) {

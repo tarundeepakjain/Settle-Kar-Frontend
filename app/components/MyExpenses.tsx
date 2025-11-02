@@ -7,12 +7,16 @@ interface MyExpensesProps {
 }
 
 export default function MyExpenses({ expenses, currentUserId }: MyExpensesProps) {
-  // Calculate total amount the user owes after splitting
   let totalOwed = 0;
-  
-  expenses.forEach(expense => {
-    if (expense.splitBetweenIds && expense.splitBetweenIds.includes(currentUserId)) {
-      const splitAmount = expense.amount / expense.splitBetweenIds.length;
+
+  expenses.forEach((expense) => {
+    const amount = Number(expense.amount) || 0; // ✅ safeguard
+    const splitBetween = Array.isArray(expense.splitBetweenIds)
+      ? expense.splitBetweenIds
+      : [];
+
+    if (splitBetween.includes(currentUserId)) {
+      const splitAmount = amount / (splitBetween.length || 1); // avoid divide by 0
       totalOwed += splitAmount;
     }
   });
@@ -34,10 +38,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     shadowColor: "#000",
     shadowOpacity: 0.1,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",

@@ -6,8 +6,11 @@ interface TotalExpensesProps {
 }
 
 export default function TotalExpenses({ expenses }: TotalExpensesProps) {
-  // Calculate total amount of all expenses
-  const totalAmount = expenses.reduce((total, expense) => total + expense.amount, 0);
+  // Safely sum only valid numbers
+  const totalAmount = expenses.reduce((total, expense) => {
+    const amount = Number(expense.amount);
+    return total + (isNaN(amount) ? 0 : amount);
+  }, 0);
 
   return (
     <View style={styles.container}>
@@ -26,10 +29,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     shadowColor: "#000",
     shadowOpacity: 0.1,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
