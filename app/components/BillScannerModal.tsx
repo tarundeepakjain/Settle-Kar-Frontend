@@ -97,7 +97,7 @@ export default function BillScannerModal({
     if (!(await requestCameraPermission())) return;
 
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images as any,
       quality: 0.8,
       allowsEditing: true,
       aspect: [4, 3],
@@ -107,7 +107,7 @@ export default function BillScannerModal({
 
   const pickFromGallery = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images as any,
       quality: 0.8,
       allowsEditing: true,
       aspect: [4, 3],
@@ -116,18 +116,28 @@ export default function BillScannerModal({
   };
 
   // Mock OCR
-  const simulateOCR = async (billData: BillData) => {
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        billData.ocrText = `Invoice #${Math.floor(Math.random() * 10000)}`;
-        billData.amount = Math.floor(Math.random() * 1000) + 100;
-        billData.category = ["Food", "Transport", "Shopping", "Bills"][
-          Math.floor(Math.random() * 4)
-        ];
-        billData.description = "Scanned from bill image";
-        resolve();
-      }, 1500);
+  // ✅ Replace simulateOCR with a real backend call
+  const uploadToBackend = async (imageUri) => {
+    const formData = new FormData();
+    formData.append("image", {
+      uri: imageUri,
+      type: "image/jpeg",
+      name: "testBill.jpg",
     });
+
+    const response = await fetch("https://settlekar.onrender.com/api/upload", {
+      method: "POST",
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error("Upload failed");
+    }
+
+    return await response.json(); // Expecting backend JSON result
   };
 
   const saveBill = async () => {
@@ -140,7 +150,12 @@ export default function BillScannerModal({
 
       if (!manualEntry && capturedImage) {
         billData.imageUri = capturedImage;
-        await simulateOCR(billData);
+        const result = await uploadToBackend(capturedImage); // call backend
+
+        billData.ocrText = result.ocrText;
+        billData.amount = result.amount;
+        billData.category = result.category;
+        billData.description = result.description;
       } else {
         billData.category = manualCategory || "Other";
         billData.amount = Number(manualAmount) || 0;
