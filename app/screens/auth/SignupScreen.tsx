@@ -15,19 +15,21 @@ export default function SignupScreen() {
   const navigation = useNavigation<any>();
   const provider = new GoogleAuthProvider();
   const auth=getAuth();
-  
+
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const verifyUser = async () => {
-      const accessToken = await AsyncStorage.getItem("accessToken") || localStorage.getItem("accessToken");
-      if (accessToken) {
-        console.log("accces token found");
-        navigation.navigate("MainTabs"); 
-      } else {
-        navigation.navigate("Login");    }
-    };
-    verifyUser();
-  }, []);
+
+  // useEffect(() => {
+  //   const verifyUser = async () => {
+  //     const accessToken = await AsyncStorage.getItem("accessToken") || localStorage.getItem("accessToken");
+  //     if (accessToken) {
+  //       console.log("accces token found");
+  //       navigation.navigate("MainTabs");
+  //     } else {
+  //       navigation.navigate("Login");    }
+  //   };
+  //   verifyUser();
+  // }, []);
+  
 const handleSignup = async () => {
   try {
     const response = await fetch("https://settlekar.onrender.com/auth", {
@@ -41,7 +43,7 @@ const handleSignup = async () => {
       await AsyncStorage.setItem("accessToken", data.accessToken);
       await AsyncStorage.setItem("refreshToken", data.refreshToken);
       alert('Signup successful!');
-     
+
       const meRes = await fetch("https://settlekar.onrender.com/auth/me", {
         headers: { Authorization: `Bearer ${data.accessToken}` },
       });
@@ -119,7 +121,7 @@ const handleSignup = async () => {
         <Animated.View style={[styles.floatingIcon, { right: '10%', bottom: '30%' }, getFloatStyle(1500)]}>
           <Ionicons name="star-outline" size={20} color="rgba(255, 255, 255, 0.5)" />
         </Animated.View>
-        
+
         {/* Gradient Orbs */}
         <View style={[styles.orb, styles.orb1]} />
         <View style={[styles.orb, styles.orb2]} />
@@ -139,7 +141,7 @@ const handleSignup = async () => {
             {"\n"}
             <Text style={styles.joinText}>Join SettleKar today!</Text>
           </Text>
-          
+
           <View style={styles.form}>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Full Name</Text>
@@ -153,7 +155,7 @@ const handleSignup = async () => {
               />
               <Ionicons name="person-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email Address</Text>
               <TextInput
@@ -167,7 +169,7 @@ const handleSignup = async () => {
               />
               <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Password</Text>
               <TextInput
@@ -182,7 +184,7 @@ const handleSignup = async () => {
                 <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#9CA3AF" />
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Confirm Password</Text>
               <TextInput
@@ -197,17 +199,17 @@ const handleSignup = async () => {
                 <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#9CA3AF" />
               </TouchableOpacity>
             </View>
-            
+
             <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
               <Ionicons name="wallet-outline" size={16} color="black" style={styles.buttonIcon} />
               <Text style={styles.signupButtonText}>Sign Up</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity style={styles.signupButton} onPress={handleGoogleSignup}>
               <Ionicons name="wallet-outline" size={16} color="black" style={styles.buttonIcon} />
               <Text style={styles.signupButtonText}>SignIn With Google</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity onPress={handleBackToLogin}>
               <Text style={styles.loginText}>
                 Already have an account? <Text style={styles.loginLink}>Login</Text>

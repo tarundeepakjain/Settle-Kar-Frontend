@@ -27,6 +27,15 @@ const Tab = createBottomTabNavigator();
 // Toggle to bypass auth in dev
 const SKIP_AUTH = false;
 
+// A map to store the base icon name for each route
+const tabIconBaseMap: { [key: string]: string } = {
+  Home: "home",
+  Groups: "people",
+  Expenses: "cash",
+  Transactions: "swap-horizontal",
+  Profile: "person",
+};
+
 // Bottom Tabs Navigator
 function MainTabs() {
   const insets = useSafeAreaInsets();
@@ -36,26 +45,13 @@ function MainTabs() {
       initialRouteName="Home"
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap;
-          switch (route.name) {
-            case "Home":
-              iconName = focused ? "home" : "home-outline";
-              break;
-            case "Groups":
-              iconName = focused ? "people" : "people-outline";
-              break;
-            case "Expenses":
-              iconName = focused ? "cash" : "cash-outline";
-              break;
-            case "Transactions":
-              iconName = focused ? "swap-horizontal" : "swap-horizontal-outline";
-              break;
-            case "Profile":
-              iconName = focused ? "person" : "person-outline";
-              break;
-            default:
-              iconName = "home-outline";
-          }
+          // Use the map to get the base icon name, defaulting to 'home'
+          const iconBase = tabIconBaseMap[route.name] ?? "home";
+          // Append '-outline' if the tab is not focused
+          const iconName = (
+            focused ? iconBase : `${iconBase}-outline`
+          ) as keyof typeof Ionicons.glyphMap;
+
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: "#2563eb",
@@ -71,11 +67,15 @@ function MainTabs() {
         tabBarLabelStyle: styles.tabBarLabel,
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: "Home" }} />
-      <Tab.Screen name="Groups" component={GroupsScreen} options={{ tabBarLabel: "Groups" }} />
-      <Tab.Screen name="Expenses" component={ExpensesScreen} options={{ tabBarLabel: "Expenses" }} />
-      <Tab.Screen name="Transactions" component={TransactionsScreen} options={{ tabBarLabel: "Transactions" }} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: "Profile" }} />
+      {/* REMOVED: options={{ tabBarLabel: "..." }}
+        WHY: The 'name' prop is used as the default label,
+             so this prop was redundant.
+      */}
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Groups" component={GroupsScreen} />
+      <Tab.Screen name="Expenses" component={ExpensesScreen} />
+      <Tab.Screen name="Transactions" component={TransactionsScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
@@ -85,22 +85,29 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator
       initialRouteName={SKIP_AUTH ? "MainTabs" : "Login"}
-      screenOptions={{ headerShown: true }}
+      // REMOVED: screenOptions={{ headerShown: true }}
+      // WHY: This is the default for Native Stack, so it's not needed.
     >
-      {/* Auth Screens */}
-      {!SKIP_AUTH && <Stack.Screen name="Login" component={LoginScreen} />}
-      {!SKIP_AUTH && <Stack.Screen name="Signup" component={SignupScreen} />}
+      {/* Auth Screens (Grouped for clarity) */}
+      {!SKIP_AUTH && (
+        <Stack.Group>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Signup" component={SignupScreen} />
+        </Stack.Group>
+      )}
 
       {/* Main App */}
-      <Stack.Screen
-        name="MainTabs"
-        component={MainTabs}
-        options={{ headerShown: false }} // hide header for tabs
-      />
-      <Stack.Screen name="Settings" component={SettingsScreen} />
-      <Stack.Screen name="Language" component={LanguageScreen} />
-      <Stack.Screen name="Currency" component={CurrencyScreen} />
-      <Stack.Screen name="GroupDetails" component={GroupDetailsScreen} />
+      <Stack.Group>
+        <Stack.Screen
+          name="MainTabs"
+          component={MainTabs}
+          options={{ headerShown: false }} // hide header for tabs
+        />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="Language" component={LanguageScreen} />
+        <Stack.Screen name="Currency" component={CurrencyScreen} />
+        <Stack.Screen name="GroupDetails" component={GroupDetailsScreen} />
+      </Stack.Group>
     </Stack.Navigator>
   );
 }

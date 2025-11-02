@@ -1,15 +1,20 @@
 import { NavigationContainer } from "@react-navigation/native";
 import React from "react";
+import { Text } from "react-native";
 import AppNavigator from "./navigation/AppNavigator";
+import * as Linking from "expo-linking";
+
 const linking = {
-  prefixes: ["http://localhost:8081", "myapp://"], // your dev URL + optional deep link
+  // Use Linking.createURL to be more platform-agnostic
+  prefixes: [Linking.createURL("/")],
   config: {
     screens: {
       Login: "login",
       Signup: "signup",
       MainTabs: {
+        path: "/",
         screens: {
-          Home: "home",
+          // Home: "home", // This is false relative path
           Groups: "groups",
           Expenses: "expenses",
           Transactions: "transactions",
@@ -20,12 +25,14 @@ const linking = {
       Language: "language",
       Currency: "currency",
       GroupDetails: "group-details",
+      NotFound: "*",
     },
   },
 };
+
 export default function App() {
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking} fallback={<Text>Loading...</Text>}>
       <AppNavigator />
     </NavigationContainer>
   );
