@@ -25,7 +25,7 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 // Toggle to bypass auth in dev
-const SKIP_AUTH = true;
+const SKIP_AUTH = false;
 
 // Bottom Tabs Navigator
 function MainTabs() {

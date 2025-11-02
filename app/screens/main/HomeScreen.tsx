@@ -12,9 +12,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
 import { Path, Svg } from "react-native-svg";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import { jwtDecode, JwtPayload } from "jwt-decode";
 export default function HomeScreen() {
   const [open, setOpen] = useState(false);         // FAB menu
   const [chatOpen, setChatOpen] = useState(false); // Chatbot
@@ -23,70 +24,112 @@ export default function HomeScreen() {
   const fabRotateAnim = useRef(new Animated.Value(0)).current;
   const optionsAnim = useRef(new Animated.Value(0)).current;
  const [name, setName] = useState(""); 
-   const fetchUserData = async () => {
-    try {
-      let accessToken = await AsyncStorage.getItem("accessToken");
-      const refreshToken = await AsyncStorage.getItem("refreshToken");
 
-      if (!accessToken) {
-        console.warn("No access token found, user might be logged out");
-        return;
-      }
+// Helper to refresh the access token using the refresh token.
 
-      let response = await fetch("https://settlekar.onrender.com/auth/me", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
 
-      if (response.status === 401) {
-        console.log("Access token expired, refreshing...");
-        const refreshed = await refreshAccessToken(refreshToken);
-        if (!refreshed) return;
-        accessToken = refreshed;
-        response = await fetch("https://settlekar.onrender.com/auth/me", {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-      }
+//   try {
+//     const res = await fetch("https://settlekar.onrender.com/auth/refresh", {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ refreshToken }),
+//     });
 
-      const data = await response.json();
-      const userName = data.name || data.user?.name;
-if (!userName) {
-  console.warn("No name found in response");
-  return;
+//     if (!res.ok) {
+//       console.warn("Refresh token request failed with status:", res.status);
+//       return null;
+//     }
+
+//     const json = await res.json();
+//     // Accept common field names (accessToken or token)
+//     const newAccessToken = json.accessToken ?? json.token ?? null;
+//     if (!newAccessToken) {
+//       console.warn("No access token found in refresh response:", json);
+//       return null;
+//     }
+
+//     // Persist the new access token for future requests
+//     await AsyncStorage.setItem("accessToken", newAccessToken);
+//     return newAccessToken;
+//   } catch (e) {
+//     console.error("Failed to refresh access token:", e);
+//     return null;
+//   }
+// }
+
+//    const fetchUserData = async () => {
+//   try {
+//     let accessToken = await AsyncStorage.getItem("accessToken");
+//     const refreshToken = await AsyncStorage.getItem("refreshToken");
+
+//     if (!accessToken) {
+//       console.warn("No access token found, user might be logged out");
+//       return;
+//     }
+
+//     let response = await fetch("https://settlekar.onrender.com/auth/me", {
+//       headers: { Authorization: `Bearer ${accessToken}` },
+//     });
+
+//     // Handle expired token
+//     if (response.status === 401) {
+//       console.log("Access token expired, refreshing...");
+//       const refreshed = await refreshAccessToken(refreshToken);
+//       if (!refreshed) return;
+//       accessToken = refreshed;
+
+//       response = await fetch("https://settlekar.onrender.com/auth/me", {
+//         headers: { Authorization: `Bearer ${accessToken}` },
+//       });
+//     }
+
+//     if (!response.ok) {
+//       console.error("Failed to fetch user data:", response.status);
+//       return;
+//     }
+
+//     const data = await response.json();
+//     // ✅ Backend returns plain user object
+//     const userName = data.name;
+//     if (!userName) {
+//       console.warn("No name found in response:", data);
+//       return;
+//     }
+
+//     setName(userName);
+//   } catch (err) {
+//     console.error("Error fetching user data:", err);
+//   }
+// };
+interface MyJwtPayload extends JwtPayload {
+  name: string;
+  email: string;
+  userId: string;
 }
+ const getUserFromToken = async () => {
+  try {
+    const token = await AsyncStorage.getItem("accessToken");
+    if (!token) return null;
 
-setName(userName);
+    const decoded = jwtDecode<MyJwtPayload>(token);
+    return decoded;
+  } catch (error) {
+    console.error("Error decoding token:", error);
+    return null;
+  }
+};
 
-       
-    } catch (err) {
-      console.error("Error fetching user data:", err);
+//   useEffect(() => {
+//   fetchUserData();
+// }, []);
+useEffect(() => {
+  (async () => {
+    const user = await getUserFromToken();
+    if (user) {
+      setName(user.name);
+      console.log("User info from token:", user);
     }
-  };
-
-  const refreshAccessToken = async (refreshToken: string | null) => {
-    if (!refreshToken) return null;
-    try {
-      const response = await fetch("https://settlekar.onrender.com/auth/refresh", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
-      });
-
-      if (!response.ok) {
-        console.warn("Failed to refresh access token");
-        return null;
-      }
-
-      const data = await response.json();
-      await AsyncStorage.setItem("accessToken", data.accessToken);
-      await AsyncStorage.setItem("refreshToken", data.refreshToken);
-      return data.accessToken;
-    } catch (err) {
-      console.error("Error refreshing token:", err);
-      return null;
-    }
-  };
-  useEffect(() => {
-  fetchUserData();
+  })();
 }, []);
   useEffect(() => {
     Animated.loop(
@@ -128,12 +171,12 @@ setName(userName);
     animationDelay: `${delay}ms`,
   });
 
-  const fabRotation = fabRotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "135deg"],
-  });
+const fabRotation = fabRotateAnim.interpolate({
+  inputRange: [0, 1],
+  outputRange: ["0deg", "135deg"],
+});
 
-  return (
+return (
     <View style={styles.container}>
       {/* Background */}
       <View style={styles.background}>

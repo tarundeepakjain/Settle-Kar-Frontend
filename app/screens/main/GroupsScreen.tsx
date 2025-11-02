@@ -13,6 +13,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import API from '../../services/api';
+import { jwtDecode} from "jwt-decode";
 type Member = {
   _id: string;
   name?: string;
@@ -24,7 +25,12 @@ type Group = {
   description?: string;
   members: Member[];
 };
-
+interface MyJwtPayload {
+  name: string;
+  email: string;
+  id: string;
+  exp?: number;
+}
 export default function GroupsScreen() {
   const navigation = useNavigation<any>(); // type as needed
   const [groups, setGroups] = useState<Group[]>([]);
@@ -33,26 +39,104 @@ export default function GroupsScreen() {
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupDesc, setNewGroupDesc] = useState("");
 
-  const fetchGroups = async (): Promise<Group[] | undefined> => {
-    try {
-      const token = await AsyncStorage.getItem("accessToken");
-      if (!token) {
-        Alert.alert("No token found. Please log in again.");
-        return;
-      }
+ const getUserFromToken = async () => {
+  try {
+    const token = await AsyncStorage.getItem("accessToken");
+    if (!token) return null;
 
-      const response = await fetch("https://settlekar.onrender.com/group/my-groups", {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
+    const decoded = jwtDecode<MyJwtPayload>(token);
+    return decoded;
+  } catch (error) {
+    console.error("Error decoding token:", error);
+    return null;
+  }
+};
+ const refreshAccessToken = async (): Promise<string | null> => {
+    try {
+      const refreshToken = await AsyncStorage.getItem("refreshToken");
+      if (!refreshToken) return null;
+
+      const response = await fetch("https://settlekar.onrender.com/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
       });
 
+      if (!response.ok) {
+        console.warn("Failed to refresh access token");
+        return null;
+      }
+
       const data = await response.json();
-      if (response.ok) return data as Group[];
-      else console.error("Failed to fetch groups:", data.message);
+      await AsyncStorage.setItem("accessToken", data.accessToken);
+      console.log("🔄 Access token refreshed successfully!");
+      return data.accessToken;
     } catch (err) {
-      console.error("Error fetching groups:", err);
+      console.error("Error refreshing token:", err);
+      return null;
     }
   };
+
+  // 🔹 Verify token expiry
+  const isTokenExpired = (decoded: MyJwtPayload) => {
+    if (!decoded.exp) return true;
+    return Date.now() >= decoded.exp * 1000;
+  };
+
+const fetchGroups = async (): Promise<Group[] | undefined> => {
+  try {
+    let token = await AsyncStorage.getItem("accessToken");
+    if (!token) {
+      Alert.alert("No token found. Please log in again.");
+      return;
+    }
+    let decoded = jwtDecode<MyJwtPayload>(token);
+    
+          if (isTokenExpired(decoded)) {
+            console.log("⚠️ Access token expired, refreshing...");
+            const newToken = await refreshAccessToken();
+            if (!newToken) {
+              console.log("❌ Failed to refresh token, logging out...");
+              
+              return;
+            }
+            token = newToken;
+            decoded = jwtDecode<MyJwtPayload>(token);
+          }
+  
+    const response = await fetch("https://settlekar.onrender.com/group/my-groups", {
+      method: "GET",
+      headers: { 
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      console.error("⚠️ Response was not JSON:", response);
+      Alert.alert("Server error", "Invalid server response");
+      return;
+    }
+
+    if (response.ok) {
+      console.log("✅ Groups fetched:", data);
+      return data as Group[];
+    } else {
+      console.error("❌ Failed to fetch groups. Full response:", data);
+      Alert.alert(
+        "Error",
+        data.message || data.error || `Failed to fetch groups (${response.status})`
+      );
+      return;
+    }
+  } catch (err: any) {
+    console.error("💥 Network or fetch error:", err);
+    Alert.alert("Error", err.message || "Network error while fetching groups");
+  }
+};
 
   const createGroup = async () => {
     try {
@@ -66,13 +150,14 @@ export default function GroupsScreen() {
         Alert.alert("No token found. Please log in again.");
         return;
       }
+  const user = await getUserFromToken();
 
       const response = await fetch("https://settlekar.onrender.com/group/new", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: newGroupName, description: newGroupDesc }),
+        body: JSON.stringify({ name: newGroupName, description: newGroupDesc,members:[user?.id],createdBy:user?.id }),
       });
-
+      
       const data = await response.json();
       if (response.ok) {
         Alert.alert("Group created successfully!");
