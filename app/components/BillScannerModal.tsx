@@ -116,19 +116,30 @@ export default function BillScannerModal({
   };
 
   // Mock OCR
-  const simulateOCR = async (billData: BillData) => {
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        billData.ocrText = `Invoice #${Math.floor(Math.random() * 10000)}`;
-        billData.amount = Math.floor(Math.random() * 1000) + 100;
-        billData.category = ["Food", "Transport", "Shopping", "Bills"][
-          Math.floor(Math.random() * 4)
-        ];
-        billData.description = "Scanned from bill image";
-        resolve();
-      }, 1500);
-    });
-  };
+  // ✅ Replace simulateOCR with a real backend call
+const uploadToBackend = async (imageUri) => {
+  const formData = new FormData();
+  formData.append("image", {
+    uri: imageUri,
+    type: "image/jpeg",
+    name: "testBill.jpg",
+  });
+
+  const response = await fetch("https://settlekar.onrender.com/api/upload", {
+    method: "POST",
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error("Upload failed");
+  }
+
+  return await response.json(); // Expecting backend JSON result
+};
+
 
   const saveBill = async () => {
     setIsProcessing(true);
@@ -139,13 +150,19 @@ export default function BillScannerModal({
       };
 
       if (!manualEntry && capturedImage) {
-        billData.imageUri = capturedImage;
-        await simulateOCR(billData);
-      } else {
-        billData.category = manualCategory || "Other";
-        billData.amount = Number(manualAmount) || 0;
-        billData.description = manualDescription || "Manually added";
-      }
+  billData.imageUri = capturedImage;
+  const result = await uploadToBackend(capturedImage); // call backend
+
+  billData.ocrText = result.ocrText;
+  billData.amount = result.amount;
+  billData.category = result.category;
+  billData.description = result.description;
+} else {
+  billData.category = manualCategory || "Other";
+  billData.amount = Number(manualAmount) || 0;
+  billData.description = manualDescription || "Manually added";
+}
+
 
       onSaveBill(billData);
       if (onOCRProcess) onOCRProcess(billData);
