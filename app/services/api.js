@@ -54,3 +54,29 @@ API.interceptors.response.use(
 );
 
 export default API;
+
+
+//OCR Integration
+export const uploadBill = async (imageUri) => {
+  try {
+    const formData = new FormData();
+    formData.append("file", {
+      uri: imageUri,
+      type: "image/png",
+      name: "testbill.png",
+    });
+    const res = await axios.post(
+      "https://settlekar.onrender.com/extract",
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
+
+    return res.data;
+  } catch (error) {
+    console.error("Bill extraction failed:", error.message);
+    throw error;
+  }
+};
+
