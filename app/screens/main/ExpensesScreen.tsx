@@ -67,7 +67,6 @@ export default function ExpensesScreen() {
     fetchExpenses();
   }, [iconFloatAnim, fetchExpenses]);
 
-  // ... (removed unused getFloatStyle)
 
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
 
