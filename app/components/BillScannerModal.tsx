@@ -148,27 +148,37 @@ const pickFromGallery = async () => {
   // Mock OCR
   // ✅ Replace simulateOCR with a real backend call
 const uploadToBackend = async (imageUri) => {
-  const formData = new FormData();
-  formData.append("image", {
-    uri: imageUri,
-    type: "image/jpeg",
-    name: "testBill.jpg",
-  });
+  try {
+    const uriParts = imageUri.split(".");
+    const fileType = uriParts[uriParts.length - 1];
 
-  const response = await fetch("https://settlekar.onrender.com/api/upload", {
-    method: "POST",
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-    body: formData,
-  });
+    const formData = new FormData();
+    formData.append("image", {
+      uri: Platform.OS === "ios" ? imageUri.replace("file://", "") : imageUri,
+      name: `bill_${Date.now()}.${fileType}`,
+      type: `image/${fileType}`,
+    });
 
-  if (!response.ok) {
-    throw new Error("Upload failed");
+    const response = await fetch("https://settlekar.onrender.com/api/upload", {
+      method: "POST",
+      body: formData, // ❌ Don't set Content-Type manually — fetch will handle it
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Upload failed:", errText);
+      throw new Error("Upload failed");
+    }
+
+    const result = await response.json();
+    console.log("✅ Upload success:", result);
+    return result;
+  } catch (err) {
+    console.error("❌ uploadToBackend error:", err);
+    throw err;
   }
-
-  return await response.json(); // Expecting backend JSON result
 };
+
 
 
   const saveBill = async () => {
