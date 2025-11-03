@@ -140,7 +140,7 @@ export default function GroupsScreen() {
 
       console.log(inputCode);
       const response = await fetch(
-        "http://10.89.230.152:5001/group/join",
+        "https://settlekar.onrender.com:5001/group/join",
         {
           method: "Post",
           headers: {
