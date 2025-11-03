@@ -5,7 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 
 const AuthContext = createContext(null);
 
-export const AuthProvider = ({ children }) => {
+export  const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();

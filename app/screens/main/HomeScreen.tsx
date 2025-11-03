@@ -12,7 +12,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
+import GroupScreen from "./GroupsScreen";
+import { useNavigation } from "@react-navigation/native";
 import { Path, Svg } from "react-native-svg";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { jwtDecode, JwtPayload } from "jwt-decode";
@@ -24,6 +25,7 @@ export default function HomeScreen() {
   const fabRotateAnim = useRef(new Animated.Value(0)).current;
   const optionsAnim = useRef(new Animated.Value(0)).current;
  const [name, setName] = useState(""); 
+ const navigation = useNavigation<any>();
 
 // Helper to refresh the access token using the refresh token.
 
@@ -327,7 +329,12 @@ return (
             <TouchableOpacity
               style={[styles.optionButton, styles.optionButton2]}
               activeOpacity={0.8}
+              onPress={() => {
+                setOpen(false); // Close the FAB menu
+                navigation.navigate("Groups", { openCreateGroup: true }); // Navigate and pass parameter
+              }}
             >
+              
               <View style={styles.optionIconContainer}>
                 <Ionicons name="people" size={20} color="#64B5F6" />
               </View>

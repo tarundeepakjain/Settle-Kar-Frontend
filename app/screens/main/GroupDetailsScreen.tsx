@@ -18,14 +18,18 @@ import TabButton from "@/app/components/TabButton";
 import Expenses from "@/app/components/Expenses";
 import MyExpenses from "@/app/components/MyExpenses";
 import TotalExpenses from "@/app/components/TotalExpenses";
-import Balances from "@/app/components/Balances";
+import { Ionicons } from "@expo/vector-icons"; // ADDED for icons in Group Details
+
+// Define the two possible tab states
+type ActiveTab = "Expenses" | "Details";
 
 export default function GroupDetails({ route }: { route: any }) {
   const { groupId } = route.params;
   const [group, setGroup] = useState<any>(null);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"Expenses" | "Balances">("Expenses");
+  // RENAMED state from 'Balances' to 'Details'
+  const [activeTab, setActiveTab] = useState<ActiveTab>("Expenses");
   const [modalVisible, setModalVisible] = useState(false);
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
 
@@ -56,6 +60,7 @@ export default function GroupDetails({ route }: { route: any }) {
 
       const data = await res.json();
       if (res.ok) {
+        console.log(data);
         setGroup(data);
         setExpenses(data.expenses || []);
       } else {
@@ -83,6 +88,7 @@ export default function GroupDetails({ route }: { route: any }) {
       desc: expense.title,
       amount: Number(expense.amount),
       paidby: expense.paidById,
+      splits: expense.splitBetweenIds,
     };
 
     console.log("Expense payload being sent:", payload);
@@ -102,7 +108,9 @@ export default function GroupDetails({ route }: { route: any }) {
           body: JSON.stringify(payload),
         }
       );
-
+      console.log(
+        "expense added"
+      );
       const data = await res.json();
       if (!res.ok) {
         console.error("Failed to add expense:", data);
@@ -118,7 +126,7 @@ export default function GroupDetails({ route }: { route: any }) {
         },
       };
 
-      setExpenses((prev) => [...prev, newExpense]); // update UI instantly
+      setExpenses((prev) => [...prev, newExpense]);
       setModalVisible(false);
       Alert.alert("Success", "Expense added!");
     } catch (err) {
@@ -158,6 +166,66 @@ export default function GroupDetails({ route }: { route: any }) {
     );
   };
 
+  // --- UPDATED Component for Group Details ---
+  const GroupDetailsInfo = () => (
+    <View style={detailsStyles.detailsContainer}>
+      <Text style={detailsStyles.detailHeader}>
+        Group Information
+      </Text>
+
+      <View style={detailsStyles.card}>
+        <View style={detailsStyles.detailRow}>
+          <Ionicons name="folder-open-outline" size={20} color="#FFD700" />
+          <Text style={detailsStyles.detailLabel}>Group Name:</Text>
+          <Text style={detailsStyles.detailValue}>{group.name}</Text>
+        </View>
+
+        <View style={detailsStyles.detailRow}>
+          <Ionicons name="document-text-outline" size={20} color="#64B5F6" />
+          <Text style={detailsStyles.detailLabel}>Description:</Text>
+          <Text style={detailsStyles.detailValue}>
+            {group.description || "No description provided"}
+          </Text>
+        </View>
+
+        <View style={detailsStyles.detailRow}>
+          <Ionicons name="qr-code-outline" size={20} color="#FFD700" />
+          <Text style={detailsStyles.detailLabel}>Invite ID:</Text>
+          {/* Displaying the Group ID as the Invite ID, truncated for display */}
+          <Text style={detailsStyles.detailValue}>
+            {group.inviteid}
+          </Text>
+        </View>
+
+        {/* 🌟 NEW: Members List Section */}
+        <View style={detailsStyles.membersListContainer}>
+          <View style={detailsStyles.membersListHeader}>
+            <Ionicons name="people" size={22} color="#96E6A1" />
+            <Text style={detailsStyles.membersListTitle}>Group Members ({group.members.length})</Text>
+          </View>
+          <View style={detailsStyles.membersList}>
+            {group.members.map((member: any) => (
+              <View key={member._id || member.id} style={detailsStyles.memberItem}>
+                <Ionicons name="person-circle-outline" size={18} color="#e0e0e0" />
+                <Text style={detailsStyles.memberName}>{member.name || "Unnamed Member"}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+        {/* 🌟 END NEW: Members List Section */}
+
+      </View>
+
+      {/* Placeholder for Balances or other info you might re-add later */}
+      <View style={detailsStyles.balancesPlaceholder}>
+          <Text style={detailsStyles.placeholderText}>
+              Financial Balances are currently not available in this view.
+          </Text>
+      </View>
+    </View>
+  );
+  // --- END Component ---
+
   if (loading)
     return (
       <ActivityIndicator
@@ -185,10 +253,11 @@ export default function GroupDetails({ route }: { route: any }) {
             isActive={activeTab === "Expenses"}
             onPress={() => setActiveTab("Expenses")}
           />
+          {/* RENAMED Tab Label and onPress */}
           <TabButton
-            label="Balances"
-            isActive={activeTab === "Balances"}
-            onPress={() => setActiveTab("Balances")}
+            label="Group Details"
+            isActive={activeTab === "Details"}
+            onPress={() => setActiveTab("Details")}
           />
         </View>
 
@@ -215,7 +284,8 @@ export default function GroupDetails({ route }: { route: any }) {
               </TouchableOpacity>
             </>
           ) : (
-            <Balances group={group} />
+            // Renders the new GroupDetailsInfo component
+            <GroupDetailsInfo />
           )}
         </View>
 
@@ -258,4 +328,98 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 16,
   },
+});
+
+// --- NEW/UPDATED STYLES FOR GROUP DETAILS ---
+const detailsStyles = StyleSheet.create({
+    detailsContainer: {
+        flex: 1,
+        paddingTop: 10,
+        gap: 20,
+    },
+    detailHeader: {
+        fontSize: 22,
+        fontWeight: '700',
+        color: '#FFD700',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    card: {
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        borderRadius: 15,
+        padding: 20,
+        gap: 15,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.12)',
+    },
+    detailRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    detailLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#a0a0a0',
+        marginLeft: 10,
+        minWidth: 90,
+    },
+    detailValue: {
+        flex: 1,
+        fontSize: 16,
+        color: '#fff',
+        fontWeight: '500',
+    },
+    // Styles for the new Members List
+    membersListContainer: {
+        marginTop: 10,
+        paddingTop: 15,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    membersListHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 10,
+    },
+    membersListTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#96E6A1',
+    },
+    membersList: {
+        gap: 8,
+        paddingHorizontal: 5,
+    },
+    memberItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        padding: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 8,
+    },
+    memberName: {
+        fontSize: 15,
+        color: '#e0e0e0',
+        fontWeight: '500',
+    },
+    // End Styles for the new Members List
+    balancesPlaceholder: {
+        marginTop: 30,
+        padding: 15,
+        backgroundColor: 'rgba(255, 0, 0, 0.1)',
+        borderRadius: 10,
+        borderLeftWidth: 3,
+        borderLeftColor: 'red',
+        alignItems: 'center',
+    },
+    placeholderText: {
+        color: '#ffcdd2',
+        fontSize: 14,
+        fontStyle: 'italic',
+    }
 });

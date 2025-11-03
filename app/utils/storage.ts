@@ -24,11 +24,13 @@ export async function updateGroupExpenses(groupId: string, newExpenses: any[]) {
   try {
     const groups = await getGroups();
     const updated = groups.map((g: any) =>
-      g.id === groupId ? { ...g, expenses: newExpenses } : g
+      g._id === groupId ? { ...g, expenses: newExpenses } : g
     );
     await saveGroups(updated);
-    return updated;
+    const updatedGroup = updated.find((g: any) => g._id === groupId);
+    return updatedGroup;
   } catch (error) {
     console.error("Error updating expenses", error);
+    throw error;
   }
 }

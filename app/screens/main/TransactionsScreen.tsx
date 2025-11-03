@@ -134,9 +134,9 @@ export default function TransactionsScreen() {
             id: i.toString(),
             kind:t.type,
             title: t.title || "Unknown",
-            amount: t.amount,
+            amount: t.amount<0?t.amount*(-1):t.amount,
             date: new Date(t.date).toLocaleDateString(),
-            type: t.amount >= 0 ? "credit" : "debit",
+            type: t.amount < 0 ? "credit" : "debit",
             category: t.category || "General",
           }));
           setData(mapped);
@@ -262,9 +262,9 @@ export default function TransactionsScreen() {
                     ]}
                   >
                     <Ionicons
-                      name={item.type === "credit" ? "arrow-down" : "arrow-up"}
+                      name={item.type === "debit" ? "arrow-down" : "arrow-up"}
                       size={20}
-                      color={item.type === "credit" ? "#96E6A1" : "#FF6B6B"}
+                      color={item.type === "debit" ? "#FF6B6B" : "#96E6A1"}
                     />
                   </View>
                   <View style={styles.cardContent}>

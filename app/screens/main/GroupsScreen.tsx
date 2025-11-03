@@ -18,20 +18,9 @@ import {
   Clipboard,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { jwtDecode } from "jwt-decode";
 import { Ionicons } from "@expo/vector-icons";
-// Local code generator (keeps dependency minimal)
-/* const generateGroupCode = (): string => {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let code = "";
-  for (let i = 0; i < 4; i++)
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  return code;
-};
-
-const validateGroupCode = (code: string) => /^[A-Z0-9]{4}$/.test(code); */
-
 // Local code generator (8-character version)
 const generateGroupCode = (): string => {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -65,6 +54,7 @@ interface MyJwtPayload {
 }
 
 export default function GroupsScreen() {
+  const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -105,7 +95,17 @@ export default function GroupsScreen() {
       useNativeDriver: true,
     }).start();
   }, [iconFloatAnim, fadeAnim]);
+  
+  useEffect(() => {
+    // Check if the parameter was passed from HomeScreen
+    if (route.params?.openCreateGroup) {
+      setModalVisible(true);
 
+      // Clear the parameter to prevent reopening on subsequent navigations
+      navigation.setParams({ openCreateGroup: undefined });
+    }
+  }, [route.params?.openCreateGroup, navigation]);
+  
   useEffect(() => {
     if (codeModalVisible) {
       setInputCode("");
@@ -123,10 +123,67 @@ export default function GroupsScreen() {
         }),
       ]).start();
     } else {
-      fadeAnim.setValue(0);
+      fadeAnim.setValue(1);
       scaleAnim.setValue(0.9);
     }
   }, [codeModalVisible, fadeAnim, scaleAnim]);
+  
+  const JoinGroup = async () => {
+    console.log("join grp called");
+
+    try {
+      let token = await AsyncStorage.getItem("accessToken");
+      if (!token) {
+        Alert.alert("No token found. Please log in again.");
+        return;
+      }
+
+      console.log(inputCode);
+      const response = await fetch(
+        "http://10.89.230.152:5001/group/join",
+        {
+          method: "Post",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ inviteid: inputCode })
+        }
+      );
+      
+      console.log(response.status);
+      setIsJoining(true);
+      
+      if (!response.ok) {
+        Alert.alert(
+          "Invalid Code",
+          "The group code you entered does not exist or has expired.",
+          [{ text: "Try Again" }]
+
+        );
+        setIsJoining(false);
+        console.warn("Failed to add");
+        return;
+      }
+
+
+      // Simulate joining process
+      Alert.alert(
+        "Success!",
+        `You have joined the group with code ${inputCode}`,);
+
+      setIsJoining(false);
+      const loadGroups = async () => {
+        const data = await fetchGroups();
+        if (data) setGroups(data);
+        setLoading(false);
+      };
+      loadGroups();
+
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const getFloatStyle = (delay: number) => ({
     transform: [
@@ -236,8 +293,8 @@ export default function GroupsScreen() {
         Alert.alert(
           "Error",
           data.message ||
-            data.error ||
-            `Failed to fetch groups (${response.status})`
+          data.error ||
+          `Failed to fetch groups (${response.status})`
         );
         return;
       }
@@ -310,6 +367,7 @@ export default function GroupsScreen() {
   const handleJoinWithCode = () => {
     setCodeModalMode("join");
     setCodeModalVisible(true);
+
   };
 
   const handleCopyCode = () => {
@@ -394,8 +452,8 @@ export default function GroupsScreen() {
   };
 
   const handleInputChange = (text: string) => {
-    const upperText = text.toUpperCase().replace(/[^A-Z0-9]/g, "");
-    setInputCode(upperText.slice(0, 8));
+    // const upperText = text.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    setInputCode(text.slice(0, 8));
   };
 
   useEffect(() => {
@@ -518,16 +576,34 @@ export default function GroupsScreen() {
                 onPress={() =>
                   navigation.navigate("GroupDetails", { groupId: item._id })
                 }
+                activeOpacity={0.8}
               >
                 <View style={styles.groupHeader}>
                   <View style={styles.groupIconContainer}>
                     <Ionicons name="people" size={24} color="#FFD700" />
                   </View>
+                  
                   <View style={styles.groupInfo}>
-                    <Text style={styles.groupName}>{item.name}</Text>
+                    {/* 🌟 CORRECTED STRUCTURE: Name and ID Row */}
+                    <View style={styles.nameAndIdRow}>
+                        {/* Wrapper with flex: 1 for Group Name to use available space */}
+                        <View style={{ flex: 1 }}> 
+                          <Text style={styles.groupName} numberOfLines={1}>
+                            {item.name}
+                          </Text>
+                        </View>
+                        {/* Invite ID Pill */}
+                        <View style={styles.inviteIdPill}>
+                          <Ionicons name="finger-print" size={12} color="#64B5F6" />
+                          <Text style={styles.inviteIdText}>ID: {item._id}</Text>
+                        </View>
+                    </View>
+                    {/* END CORRECTED STRUCTURE */}
+
                     {item.description ? (
                       <Text style={styles.groupDesc}>{item.description}</Text>
                     ) : null}
+                    
                     <View style={styles.groupMeta}>
                       <Ionicons name="person" size={12} color="#a0a0a0" />
                       <Text style={styles.groupMetaText}>
@@ -535,6 +611,7 @@ export default function GroupsScreen() {
                       </Text>
                     </View>
                   </View>
+                  
                   {item.code && (
                     <View style={styles.codeIndicator}>
                       <Ionicons name="qr-code" size={14} color="#96E6A1" />
@@ -543,19 +620,6 @@ export default function GroupsScreen() {
                   )}
                 </View>
               </TouchableOpacity>
-
-              <View style={styles.groupActions}>
-                <TouchableOpacity
-                  style={styles.actionButtonSecondary}
-                  activeOpacity={0.8}
-                  onPress={() => handleGenerateCode(item)}
-                >
-                  <Ionicons name="share-social" size={18} color="#FFD700" />
-                  <Text style={styles.actionButtonSecondaryText}>
-                    {item.code ? "View Code" : "Generate Code"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </Animated.View>
           )}
           ListEmptyComponent={
@@ -746,8 +810,6 @@ export default function GroupsScreen() {
                       placeholder="XXXXXXXX"
                       placeholderTextColor="rgba(255, 255, 255, 0.3)"
                       maxLength={8}
-                      autoCapitalize="characters"
-                      autoCorrect={false}
                       editable={!isJoining}
                     />
                     <Text style={styles.inputHint}>
@@ -759,9 +821,9 @@ export default function GroupsScreen() {
                     style={[
                       styles.joinButton,
                       (isJoining || inputCode.length !== 8) &&
-                        styles.joinButtonDisabled,
+                      styles.joinButtonDisabled,
                     ]}
-                    onPress={handleJoinGroup}
+                    onPress={JoinGroup}
                     activeOpacity={0.8}
                     disabled={isJoining || inputCode.length !== 8}
                   >
@@ -930,12 +992,38 @@ const styles = StyleSheet.create({
   groupInfo: {
     flex: 1,
   },
+  // 🌟 NEW/UPDATED STYLE: Container for Name and Invite ID
+  nameAndIdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    marginBottom: 4,
+    gap: 10,
+  },
   groupName: {
     fontSize: 18,
     fontWeight: "700",
     color: "#fff",
     letterSpacing: 0.3,
-    marginBottom: 4,
+    // marginBottom: 4, // Removed since it's now in a row
+  },
+  // 🌟 NEW STYLE: Pill for Invite ID
+  inviteIdPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(100, 200, 255, 0.1)', // Light blue background
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(100, 200, 255, 0.3)',
+  },
+  inviteIdText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64B5F6', // Blue text color
+    letterSpacing: 0.5,
   },
   groupDesc: {
     fontSize: 13,

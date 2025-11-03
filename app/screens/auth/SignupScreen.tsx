@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View, Animated, Easing, SafeAreaView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { getAuth,signInWithPopup,GoogleAuthProvider } from "firebase/auth";
+
 import { navigate } from 'expo-router/build/global-state/routing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API from '../../services/api';
@@ -13,8 +13,7 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation<any>();
-  const provider = new GoogleAuthProvider();
-  const auth=getAuth();
+
 
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
 
@@ -76,28 +75,28 @@ const handleSignup = async () => {
     animationDelay: `${delay}ms`,
   });
 
-  const handleGoogleSignup = () => {
-    signInWithPopup(auth, provider)
-    .then((result) => {
-        // This gives you a Google Access Token. You can use it to access the Google API.
-        const credential = GoogleAuthProvider.credentialFromResult(result);
-        const token = credential ? credential.accessToken : null;
-        // The signed-in user info.
-        const user = result.user;
-        navigation.navigate('MainTabs');
-        // IdP data available using getAdditionalUserInfo(result)
-        // ...
-      }).catch((error) => {
-        // Handle Errors here.
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        // The email of the user's account used.
-        const email = error.customData.email;
-        // The AuthCredential type that was used.
-        const credential = GoogleAuthProvider.credentialFromError(error);
-        // ...
-      });
-  };
+  // const handleGoogleSignup = () => {
+  //   signInWithPopup(auth, provider)
+  //   .then((result) => {
+  //       // This gives you a Google Access Token. You can use it to access the Google API.
+  //       const credential = GoogleAuthProvider.credentialFromResult(result);
+  //       const token = credential ? credential.accessToken : null;
+  //       // The signed-in user info.
+  //       const user = result.user;
+  //       navigation.navigate('MainTabs');
+  //       // IdP data available using getAdditionalUserInfo(result)
+  //       // ...
+  //     }).catch((error) => {
+  //       // Handle Errors here.
+  //       const errorCode = error.code;
+  //       const errorMessage = error.message;
+  //       // The email of the user's account used.
+  //       const email = error.customData.email;
+  //       // The AuthCredential type that was used.
+  //       const credential = GoogleAuthProvider.credentialFromError(error);
+  //       // ...
+  //     });
+  // };
 
   const handleBackToLogin = () => {
     // Navigate back to Login screen
@@ -204,11 +203,11 @@ const handleSignup = async () => {
               <Ionicons name="wallet-outline" size={16} color="black" style={styles.buttonIcon} />
               <Text style={styles.signupButtonText}>Sign Up</Text>
             </TouchableOpacity>
-
+{/* 
             <TouchableOpacity style={styles.signupButton} onPress={handleGoogleSignup}>
               <Ionicons name="wallet-outline" size={16} color="black" style={styles.buttonIcon} />
               <Text style={styles.signupButtonText}>SignIn With Google</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             <TouchableOpacity onPress={handleBackToLogin}>
               <Text style={styles.loginText}>
