@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import * as FileSystem from "expo-file-system";
 import {
   StyleSheet,
   Text,
@@ -94,51 +95,81 @@ export default function BillScannerModal({
 
   // Capture / Pick image
   const openCamera = async () => {
-    if (!(await requestCameraPermission())) return;
+  if (!(await requestCameraPermission())) return;
 
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images as any,
-      quality: 0.8,
-      allowsEditing: true,
-      aspect: [4, 3],
-    });
-    if (!result.canceled) setCapturedImage(result.assets?.[0]?.uri || null);
-  };
+  const result = await ImagePicker.launchCameraAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    quality: 0.8,
+    allowsEditing: true,
+    aspect: [4, 3],
+  });
 
-  const pickFromGallery = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images as any,
-      quality: 0.8,
-      allowsEditing: true,
-      aspect: [4, 3],
-    });
-    if (!result.canceled) setCapturedImage(result.assets?.[0]?.uri || null);
-  };
+  if (!result.canceled) {
+    const uri = result.assets?.[0]?.uri;
+    if (uri) {
+      try {
+        // ✅ Move the image from cache to persistent storage
+        const localUri = `${FileSystem.documentDirectory}bill_${Date.now()}.jpg`;
+        await FileSystem.copyAsync({ from: uri, to: localUri });
+        console.log("✅ Image saved locally at:", localUri);
+        setCapturedImage(localUri);
+      } catch (err) {
+        console.error("❌ Error saving image locally:", err);
+        setCapturedImage(uri); // fallback to original
+      }
+    }
+  }
+};
+const pickFromGallery = async () => {
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    quality: 0.8,
+    allowsEditing: true,
+    aspect: [4, 3],
+  });
+
+  if (!result.canceled) {
+    const uri = result.assets?.[0]?.uri;
+    if (uri) {
+      try {
+        // ✅ Copy image from temp cache to local storage
+        const localUri = `${FileSystem.documentDirectory}bill_${Date.now()}.jpg`;
+        await FileSystem.copyAsync({ from: uri, to: localUri });
+        console.log("✅ Gallery image saved locally at:", localUri);
+        setCapturedImage(localUri);
+      } catch (err) {
+        console.error("❌ Error saving gallery image:", err);
+        setCapturedImage(uri); // fallback
+      }
+    }
+  }
+};
 
   // Mock OCR
   // ✅ Replace simulateOCR with a real backend call
-  const uploadToBackend = async (imageUri) => {
-    const formData = new FormData();
-    formData.append("image", {
-      uri: imageUri,
-      type: "image/jpeg",
-      name: "testBill.jpg",
-    });
+const uploadToBackend = async (imageUri) => {
+  const formData = new FormData();
+  formData.append("image", {
+    uri: imageUri,
+    type: "image/jpeg",
+    name: "testBill.jpg",
+  });
 
-    const response = await fetch("https://settlekar.onrender.com/api/upload", {
-      method: "POST",
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-      body: formData,
-    });
+  const response = await fetch("https://settlekar.onrender.com/api/upload", {
+    method: "POST",
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+    body: formData,
+  });
 
-    if (!response.ok) {
-      throw new Error("Upload failed");
-    }
+  if (!response.ok) {
+    throw new Error("Upload failed");
+  }
 
-    return await response.json(); // Expecting backend JSON result
-  };
+  return await response.json(); // Expecting backend JSON result
+};
+
 
   const saveBill = async () => {
     setIsProcessing(true);
@@ -149,18 +180,19 @@ export default function BillScannerModal({
       };
 
       if (!manualEntry && capturedImage) {
-        billData.imageUri = capturedImage;
-        const result = await uploadToBackend(capturedImage); // call backend
+  billData.imageUri = capturedImage;
+  const result = await uploadToBackend(capturedImage); // call backend
 
-        billData.ocrText = result.ocrText;
-        billData.amount = result.amount;
-        billData.category = result.category;
-        billData.description = result.description;
-      } else {
-        billData.category = manualCategory || "Other";
-        billData.amount = Number(manualAmount) || 0;
-        billData.description = manualDescription || "Manually added";
-      }
+  billData.ocrText = result.ocrText;
+  billData.amount = result.amount;
+  billData.category = result.category;
+  billData.description = result.description;
+} else {
+  billData.category = manualCategory || "Other";
+  billData.amount = Number(manualAmount) || 0;
+  billData.description = manualDescription || "Manually added";
+}
+
 
       onSaveBill(billData);
       if (onOCRProcess) onOCRProcess(billData);
@@ -520,3 +552,4 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.12)",
   },
 });
+
