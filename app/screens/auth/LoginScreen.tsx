@@ -14,7 +14,7 @@ export default function LoginScreen() {
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
 useEffect(() => {
   const verifyUser = async () => {
-    const accessToken = await AsyncStorage.getItem("accessToken") || localStorage.getItem("accessToken");
+    const accessToken = await AsyncStorage.getItem("accessToken") 
     if (accessToken) {
       console.log("accces token found");
       navigation.navigate("MainTabs"); 

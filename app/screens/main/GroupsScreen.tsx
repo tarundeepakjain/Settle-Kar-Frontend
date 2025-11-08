@@ -15,11 +15,11 @@ import {
   Platform,
   SafeAreaView,
   Share,
-  Clipboard,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { jwtDecode } from "jwt-decode";
+import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
 // Local code generator (8-character version)
 const generateGroupCode = (): string => {
@@ -44,6 +44,8 @@ type Group = {
   description?: string;
   members: Member[];
   code?: string;
+  inviteid:string;
+  createdBy?:string;
 };
 
 interface MyJwtPayload {
@@ -61,7 +63,7 @@ export default function GroupsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupDesc, setNewGroupDesc] = useState("");
-
+  const [currentUser, setCurrentUser] = useState<MyJwtPayload | null>(null);
   // Code feature states
   const [codeModalVisible, setCodeModalVisible] = useState(false);
   const [codeModalMode, setCodeModalMode] = useState<"generate" | "join">(
@@ -140,7 +142,7 @@ export default function GroupsScreen() {
 
       console.log(inputCode);
       const response = await fetch(
-        "https://settlekar.onrender.com:5001/group/join",
+        "https://settlekar.onrender.com/group/join",
         {
           method: "Post",
           headers: {
@@ -150,20 +152,34 @@ export default function GroupsScreen() {
           body: JSON.stringify({ inviteid: inputCode })
         }
       );
-      
+      const d=await response.json();
       console.log(response.status);
       setIsJoining(true);
       
       if (!response.ok) {
+        if(d.message==="group not found"){
         Alert.alert(
           "Invalid Code",
           "The group code you entered does not exist or has expired.",
           [{ text: "Try Again" }]
-
+     
         );
-        setIsJoining(false);
-        console.warn("Failed to add");
-        return;
+           }
+        else{
+          Alert.alert(
+          "Invalid ",
+          "User already in group",
+          [{ text: "Try Again" }]
+     
+        );
+        const updatedGroups = await fetchGroups();
+        if (updatedGroups) setGroups(updatedGroups);
+        
+        setCodeModalVisible(false); // <-- Close the modal on success
+        setInputCode("");
+        }
+      
+        
       }
 
 
@@ -242,7 +258,12 @@ export default function GroupsScreen() {
     if (!decoded.exp) return true;
     return Date.now() >= decoded.exp * 1000;
   };
-
+useEffect(() => {
+  (async () => {
+    const user = await getUserFromToken();
+    setCurrentUser(user);
+  })();
+}, []);
   const fetchGroups = React.useCallback(async (): Promise<
     Group[] | undefined
   > => {
@@ -287,6 +308,7 @@ export default function GroupsScreen() {
 
       if (response.ok) {
         console.log("✅ Groups fetched:", data);
+        console.log(data);
         return data as Group[];
       } else {
         console.error("❌ Failed to fetch groups. Full response:", data);
@@ -351,7 +373,51 @@ export default function GroupsScreen() {
       Alert.alert("Error creating group");
     }
   };
+const deleteGroup = async (groupId: string) => {
+  Alert.alert(
+    "Delete Group",
+    "Are you sure you want to delete this group? This action cannot be undone.",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const token = await AsyncStorage.getItem("accessToken");
+            if (!token) {
+              Alert.alert("No token found. Please log in again.");
+              return;
+            }
 
+            const response = await fetch(
+              `https://settlekar.onrender.com/group/${groupId}`,
+              {
+                method: "DELETE",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
+            if (response.ok) {
+              Alert.alert("Group deleted successfully!");
+              const updatedGroups = await fetchGroups();
+              if (updatedGroups) setGroups(updatedGroups);
+            } else {
+              const err = await response.json();
+              Alert.alert("Error", err.message || "Failed to delete group");
+            }
+          } catch (error) {
+            console.error("Error deleting group:", error);
+            Alert.alert("Error deleting group");
+          }
+        },
+      },
+    ]
+  );
+};
   // Code feature functions
   const handleGenerateCode = (group: Group) => {
     const code = generateGroupCode();
@@ -423,7 +489,6 @@ export default function GroupsScreen() {
     setTimeout(() => {
       setIsJoining(false);
 
-      // Simulate success/failure (80% success rate)
       const isSuccess = Math.random() > 0.2;
 
       if (isSuccess) {
@@ -570,6 +635,11 @@ export default function GroupsScreen() {
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshing={loading}
+  onRefresh={async () => {
+    const data = await fetchGroups();
+    if (data) setGroups(data);
+  }}
           renderItem={({ item }) => (
             <Animated.View style={[styles.groupCard, { opacity: fadeAnim }]}>
               <TouchableOpacity
@@ -582,6 +652,7 @@ export default function GroupsScreen() {
                   <View style={styles.groupIconContainer}>
                     <Ionicons name="people" size={24} color="#FFD700" />
                   </View>
+                 
                   
                   <View style={styles.groupInfo}>
                     {/* 🌟 CORRECTED STRUCTURE: Name and ID Row */}
@@ -594,30 +665,46 @@ export default function GroupsScreen() {
                         </View>
                         {/* Invite ID Pill */}
                         <View style={styles.inviteIdPill}>
-                          <Ionicons name="finger-print" size={12} color="#64B5F6" />
-                          <Text style={styles.inviteIdText}>ID: {item._id}</Text>
+                          
+                          <Text style={styles.inviteIdText}>Invite ID: {item.inviteid}</Text>
                         </View>
+                                        
                     </View>
+               
                     {/* END CORRECTED STRUCTURE */}
 
                     {item.description ? (
                       <Text style={styles.groupDesc}>{item.description}</Text>
                     ) : null}
                     
-                    <View style={styles.groupMeta}>
-                      <Ionicons name="person" size={12} color="#a0a0a0" />
-                      <Text style={styles.groupMetaText}>
-                        {item.members.length} members
-                      </Text>
-                    </View>
+                    <View style={styles.groupMetaRow}>
+  <View style={styles.groupMetaLeft}>
+    <Ionicons name="person" size={12} color="#a0a0a0" />
+    <Text style={styles.groupMetaText}>
+      {item.members.length} members
+    </Text>
+  </View>
+
+  {currentUser && item.createdBy && item.createdBy === currentUser.id && (
+    <TouchableOpacity
+      onPress={() => deleteGroup(item._id)}
+      style={styles.deleteIconContainer}
+    >
+      <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
+    </TouchableOpacity>
+  )}
+</View>
+     
                   </View>
-                  
+                                  
+  
                   {item.code && (
                     <View style={styles.codeIndicator}>
                       <Ionicons name="qr-code" size={14} color="#96E6A1" />
                       <Text style={styles.codeIndicatorText}>{item.code}</Text>
                     </View>
                   )}
+      
                 </View>
               </TouchableOpacity>
             </Animated.View>
@@ -854,6 +941,26 @@ export default function GroupsScreen() {
 }
 
 const styles = StyleSheet.create({
+groupMetaRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginTop: 4,
+},
+
+groupMetaLeft: {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 6,
+},
+
+deleteIconContainer: {
+  padding: 6,
+  backgroundColor: "rgba(255, 107, 107, 0.1)",
+  borderRadius: 8,
+  borderWidth: 1,
+  borderColor: "rgba(255,107,107,0.3)",
+},
   container: {
     flex: 1,
     backgroundColor: "#0a1421",

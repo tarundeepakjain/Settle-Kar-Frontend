@@ -19,10 +19,31 @@ import Expenses from "@/app/components/Expenses";
 import MyExpenses from "@/app/components/MyExpenses";
 import TotalExpenses from "@/app/components/TotalExpenses";
 import { Ionicons } from "@expo/vector-icons"; // ADDED for icons in Group Details
-
+import { jwtDecode } from "jwt-decode";
+import * as Clipboard from "expo-clipboard";
 // Define the two possible tab states
 type ActiveTab = "Expenses" | "Details";
+type Member = {
+  _id: string;
+  name?: string;
+};
 
+type Group = {
+  _id: string;
+  name: string;
+  description?: string;
+  members: Member[];
+  code?: string;
+  inviteid:string;
+  createdBy?:string;
+};
+
+interface MyJwtPayload {
+  name: string;
+  email: string;
+  id: string;
+  exp?: number;
+}
 export default function GroupDetails({ route }: { route: any }) {
   const { groupId } = route.params;
   const [group, setGroup] = useState<any>(null);
@@ -32,7 +53,7 @@ export default function GroupDetails({ route }: { route: any }) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("Expenses");
   const [modalVisible, setModalVisible] = useState(false);
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
-
+ const [currentUser, setCurrentUser] = useState<any>(null);
   // Floating icon animation
   useEffect(() => {
     Animated.loop(
@@ -44,7 +65,36 @@ export default function GroupDetails({ route }: { route: any }) {
       })
     ).start();
   }, []);
+ const getUserFromToken = async () => {
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      if (!token) return null;
 
+      const decoded = jwtDecode<MyJwtPayload>(token);
+      return decoded;
+    } catch (error) {
+      console.error("Error decoding token:", error);
+      return null;
+    }
+  };
+  useEffect(() => {
+  const fetchUser = async () => {
+    const token = await AsyncStorage.getItem("accessToken");
+    if (!token) return;
+    const payload = JSON.parse(atob(token.split(".")[1])); // Decode JWT payload
+    setCurrentUser(payload);
+  };
+  fetchUser();
+}, []);
+const handleCopyInviteId = async () => {
+  try {
+    await Clipboard.setStringAsync(group.inviteid);
+    Alert.alert("Copied!", "Invite ID copied to clipboard.");
+  } catch (err) {
+    console.error("Clipboard copy failed:", err);
+    Alert.alert("Error", "Failed to copy invite ID.");
+  }
+};
   // Fetch group details
   const fetchGroupDetails = async () => {
     try {
@@ -134,7 +184,52 @@ export default function GroupDetails({ route }: { route: any }) {
       Alert.alert("Error", "Failed to add expense");
     }
   };
+const handleDeleteMember = async (memberid: string) => {
+  Alert.alert(
+    "Remove Member",
+    "Are you sure you want to remove this member from the group?",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const token = await AsyncStorage.getItem("accessToken");
+            if (!token) return;
 
+            const res = await fetch(
+              `https://settlekar.onrender.com/group/${groupId}/delete-member`,
+              {
+                method: "DELETE",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ memberid }),
+              }
+            );
+
+            const data = await res.json();
+
+            if (res.ok) {
+              Alert.alert("Success", "Member removed successfully.");
+              setGroup((prev: any) => ({
+                ...prev,
+                members: prev.members.filter((m: any) => m._id !== memberid),
+              }));
+            } else {
+              Alert.alert("Error", data.message || "Failed to remove member.");
+            }
+          } catch (err) {
+            console.error("Error removing member:", err);
+            Alert.alert("Error", "Something went wrong.");
+          }
+        },
+      },
+    ]
+  );
+};
   const getFloatStyle = {
     transform: [
       {
@@ -188,30 +283,50 @@ export default function GroupDetails({ route }: { route: any }) {
           </Text>
         </View>
 
-        <View style={detailsStyles.detailRow}>
-          <Ionicons name="qr-code-outline" size={20} color="#FFD700" />
-          <Text style={detailsStyles.detailLabel}>Invite ID:</Text>
-          {/* Displaying the Group ID as the Invite ID, truncated for display */}
-          <Text style={detailsStyles.detailValue}>
-            {group.inviteid}
-          </Text>
-        </View>
+        <View style={[detailsStyles.detailRow, { alignItems: "center" }]}>
+  <Ionicons name="qr-code-outline" size={20} color="#FFD700" />
+  <Text style={detailsStyles.detailLabel}>Invite ID:</Text>
 
+  <View style={detailsStyles.inviteRow}>
+    <Text style={detailsStyles.detailValue}>{group.inviteid}</Text>
+
+    <TouchableOpacity
+      style={detailsStyles.copyButton}
+      onPress={handleCopyInviteId}
+    >
+      <Ionicons name="copy-outline" size={18} color="#FFD700" />
+    </TouchableOpacity>
+  </View>
+</View>
         {/* 🌟 NEW: Members List Section */}
-        <View style={detailsStyles.membersListContainer}>
-          <View style={detailsStyles.membersListHeader}>
-            <Ionicons name="people" size={22} color="#96E6A1" />
-            <Text style={detailsStyles.membersListTitle}>Group Members ({group.members.length})</Text>
-          </View>
-          <View style={detailsStyles.membersList}>
-            {group.members.map((member: any) => (
-              <View key={member._id || member.id} style={detailsStyles.memberItem}>
-                <Ionicons name="person-circle-outline" size={18} color="#e0e0e0" />
-                <Text style={detailsStyles.memberName}>{member.name || "Unnamed Member"}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
+        <View style={detailsStyles.membersList}>
+  {group.members.map((member: any) => (
+    <View key={member._id || member.id} style={detailsStyles.memberItem}>
+      <Ionicons name="person-circle-outline" size={18} color="#e0e0e0" />
+
+      <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+        <Text style={detailsStyles.memberName}>
+          {member.name || "Unnamed Member"}
+        </Text>
+
+        {/* 🏷️ Mark admin */}
+        {member._id === group.createdBy && (
+          <Text style={detailsStyles.adminTag}> (Admin)</Text>
+        )}
+      </View>
+
+      {/* 🗑️ Delete button - visible only to admin */}
+      {currentUser && group.createdBy === currentUser.id && member._id !== group.createdBy && (
+        <TouchableOpacity
+          onPress={() => handleDeleteMember(member._id)}
+          style={detailsStyles.deleteMemberIcon}
+        >
+          <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
+        </TouchableOpacity>
+      )}
+    </View>
+  ))}
+</View>
         {/* 🌟 END NEW: Members List Section */}
 
       </View>
@@ -304,6 +419,7 @@ export default function GroupDetails({ route }: { route: any }) {
 }
 
 const styles = StyleSheet.create({
+ 
   container: { flex: 1, backgroundColor: "#0a1421" },
   contentWrapper: { flex: 1 },
   tabRow: {
@@ -321,6 +437,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 18,
   },
+  
   addButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
   emptyText: {
     color: "rgba(255,255,255,0.6)",
@@ -332,6 +449,36 @@ const styles = StyleSheet.create({
 
 // --- NEW/UPDATED STYLES FOR GROUP DETAILS ---
 const detailsStyles = StyleSheet.create({
+   adminTag: {
+  color: "#FFD700",
+  fontWeight: "600",
+  fontSize: 13,
+  marginLeft: 4,
+},
+
+deleteMemberIcon: {
+  padding: 6,
+  backgroundColor: "rgba(255, 107, 107, 0.1)",
+  borderRadius: 8,
+  borderWidth: 1,
+  borderColor: "rgba(255,107,107,0.3)",
+  marginLeft: 10,
+},
+inviteRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 8,
+  flex: 1,
+  justifyContent: "space-between",
+},
+
+copyButton: {
+  padding: 6,
+  borderRadius: 8,
+  backgroundColor: "rgba(255, 215, 0, 0.1)",
+  borderWidth: 1,
+  borderColor: "rgba(255, 215, 0, 0.3)",
+},
     detailsContainer: {
         flex: 1,
         paddingTop: 10,
