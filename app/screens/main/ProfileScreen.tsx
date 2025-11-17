@@ -19,7 +19,9 @@ import {
 
 import ChangePassword from "../../components/ChangePassword";
 import CurrencySetting from "../../components/CurrencySetting";
-import EditProfile from "../../components/EditProfile"; // ✅ imported
+import EditProfile from "../../components/EditProfile";
+
+import { useCurrency } from "../../context/CurrencyContext"; // ⭐ GLOBAL CURRENCY
 
 interface MyJwtPayload {
   name: string;
@@ -58,9 +60,12 @@ const ProfileOption = ({
 
 export default function ProfileScreen() {
   const navigation = useNavigation<any>();
+  const { currency } = useCurrency(); // ⭐ GLOBAL CURRENCY
+
   const [userData, setUserData] = useState({ name: "Loading...", email: "loading@example.com" });
   const [isChangePasswordVisible, setIsChangePasswordVisible] = useState(false);
-  const [isEditProfileVisible, setIsEditProfileVisible] = useState(false); // ✅ new state
+  const [isEditProfileVisible, setIsEditProfileVisible] = useState(false);
+
   const profileImage =
     "https://cdn.pixabay.com/photo/2020/11/19/15/32/sculpture-5758884_1280.jpg";
 
@@ -114,7 +119,6 @@ export default function ProfileScreen() {
 
       const data = await response.json();
       await AsyncStorage.setItem("accessToken", data.accessToken);
-      console.log("🔄 Access token refreshed successfully!");
       return data.accessToken;
     } catch (err) {
       console.error("Error refreshing token:", err);
@@ -135,10 +139,8 @@ export default function ProfileScreen() {
       let decoded = jwtDecode<MyJwtPayload>(token);
 
       if (isTokenExpired(decoded)) {
-        console.log("⚠️ Access token expired, refreshing...");
         const newToken = await refreshAccessToken();
         if (!newToken) {
-          console.log("❌ Failed to refresh token, logging out...");
           handleLogout();
           return;
         }
@@ -152,7 +154,6 @@ export default function ProfileScreen() {
       };
 
       setUserData(newUserData);
-      console.log("✅ User loaded:", decoded);
     } catch (err) {
       console.error("Error loading user data:", err);
     }
@@ -183,14 +184,13 @@ export default function ProfileScreen() {
     <View style={styles.container}>
       <SafeAreaView style={styles.contentWrapper}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {/* ⭐️ PROFILE CARD (non-editable) */}
           <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
             <View style={styles.editableCard}>
               <View style={styles.avatarContainer}>
                 <Image source={{ uri: profileImage }} style={styles.avatar} />
                 <TouchableOpacity
                   style={styles.avatarEditButton}
-                  onPress={() => setIsEditProfileVisible(true)} // ✅ opens modal
+                  onPress={() => setIsEditProfileVisible(true)}
                 >
                   <Ionicons name="create-outline" size={16} color="#0a1421" />
                 </TouchableOpacity>
@@ -202,11 +202,13 @@ export default function ProfileScreen() {
 
                 <Text style={styles.label}>Email Address</Text>
                 <Text style={styles.staticText}>{userData.email}</Text>
+
+                <Text style={styles.label}>Currency</Text>
+                <Text style={styles.staticText}>{currency}</Text>
               </View>
             </View>
           </Animated.View>
 
-          {/* Settings Sections */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Account</Text>
             <View style={styles.sectionBody}>
@@ -230,7 +232,7 @@ export default function ProfileScreen() {
               <ProfileOption
                 iconName="notifications-outline"
                 title="Notifications"
-                onPress={() => Alert.alert("Notifications", "Toggles and preferences go here.")}
+                onPress={() => Alert.alert("Notifications", "Coming soon!")}
               />
             </View>
           </View>
@@ -241,25 +243,23 @@ export default function ProfileScreen() {
               <ProfileOption
                 iconName="help-circle-outline"
                 title="Help & FAQ"
-                onPress={() => Alert.alert("Support", "Open web view to support page.")}
+                onPress={() => navigation.navigate("Help")}
               />
               <ProfileOption
                 iconName="document-text-outline"
                 title="Terms & Privacy"
-                onPress={() => Alert.alert("Legal", "Open web view to terms/privacy.")}
+                onPress={() => navigation.navigate("Terms")}
               />
             </View>
           </View>
         </ScrollView>
 
-        {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color="#fff" />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </SafeAreaView>
 
-      {/* ✅ Edit Profile Modal */}
       <EditProfile
         isVisible={isEditProfileVisible}
         onClose={() => setIsEditProfileVisible(false)}
@@ -268,7 +268,6 @@ export default function ProfileScreen() {
         onProfileUpdated={(newName) => setUserData((prev) => ({ ...prev, name: newName }))}
       />
 
-      {/* Existing Change Password Modal */}
       <ChangePassword
         isVisible={isChangePasswordVisible}
         onClose={() => setIsChangePasswordVisible(false)}
