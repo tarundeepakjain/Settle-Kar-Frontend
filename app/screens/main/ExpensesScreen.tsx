@@ -24,7 +24,6 @@ export default function ExpensesScreen() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [scannerVisible, setScannerVisible] = useState(false);
-
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const fabScaleAnim = useRef(new Animated.Value(1)).current;

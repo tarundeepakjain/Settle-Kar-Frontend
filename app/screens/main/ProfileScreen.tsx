@@ -16,7 +16,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
 import ChangePassword from "../../components/ChangePassword";
 import CurrencySetting from "../../components/CurrencySetting";
 import EditProfile from "../../components/EditProfile"; // ✅ imported

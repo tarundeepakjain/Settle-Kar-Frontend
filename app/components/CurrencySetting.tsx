@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { Alert, Picker, StyleSheet, Text, View } from "react-native";
-
+import { Alert, StyleSheet, Text, View } from "react-native";
+import {Picker} from "@react-native-picker/picker";
 const availableCurrencies = [
   { label: 'USD ($)', value: 'USD' },
   { label: 'EUR (€)', value: 'EUR' },
