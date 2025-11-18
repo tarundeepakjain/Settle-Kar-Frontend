@@ -138,7 +138,7 @@ const handleCopyInviteId = async () => {
       desc: expense.title,
       amount: Number(expense.amount),
       paidby: expense.paidById,
-      splits: expense.splitBetweenIds,
+      splitAmong: expense.splitBetweenIds,
     };
 
     console.log("Expense payload being sent:", payload);
@@ -168,13 +168,13 @@ const handleCopyInviteId = async () => {
       }
 
       // ✅ Immediately show the new expense with payer name
-      const newExpense = {
-        ...data.expense,
-        paidBy: {
-          _id: data.expense.paidBy._id,
-          name: data.expense.paidBy.name || "Unknown",
-        },
-      };
+    const newExpense = {
+  ...data.expense,
+  paidBy: group.members.find((m:Member) => m._id === data.expense.paidby) || {
+    _id: data.expense.paidby,
+    name: "Unknown"
+  }
+};
 
       setExpenses((prev) => [...prev, newExpense]);
       setModalVisible(false);

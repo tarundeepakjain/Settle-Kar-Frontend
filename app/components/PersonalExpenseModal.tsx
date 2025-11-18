@@ -36,7 +36,7 @@ export default function PersonalExpenseModal({ visible, onClose, onSuccess }: Pr
     try {
       const token = await AsyncStorage.getItem("accessToken");
 
-      const res = await fetch("https://settlekar.onrender.com/transaction/personal", {
+      const res = await fetch("https://settlekar.onrender.com/user/transaction/personal", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -54,7 +54,7 @@ export default function PersonalExpenseModal({ visible, onClose, onSuccess }: Pr
         return;
       }
 
-      onSuccess();
+      onSuccess?.();
       setTitle("");
       setAmount("");
       onClose();

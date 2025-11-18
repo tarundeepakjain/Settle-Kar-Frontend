@@ -9,7 +9,7 @@ const availableCurrencies = [
 ];
 
 export default function CurrencySetting() {
-  const [selectedCurrency, setSelectedCurrency] = useState('USD'); // Default to USD
+  const [selectedCurrency, setSelectedCurrency] = useState('INR'); // Default to USD
 
   const handleCurrencyChange = (value: string) => {
     setSelectedCurrency(value);

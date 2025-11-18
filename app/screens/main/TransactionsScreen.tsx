@@ -23,7 +23,7 @@ interface MyJwtPayload {
 export default function TransactionsScreen() {
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-
+  const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -178,6 +178,11 @@ export default function TransactionsScreen() {
     },
     { income: 0, expense: 0 }
   );
+  const onRefresh = async () => {
+  setRefreshing(true);
+  await fetchTransactions();
+  setRefreshing(false);
+};
   const balance = totals.income - totals.expense;
 
   return (
@@ -247,20 +252,23 @@ export default function TransactionsScreen() {
           </View>
         ) : (
           <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-            <FlatList
-              data={data}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.listContent}
-              renderItem={({ item }) => (
-                <View style={styles.card}>
-                  <View
-                    style={[
-                      styles.cardIconContainer,
-                      item.type === "credit"
-                        ? styles.cardIconCredit
-                        : styles.cardIconDebit,
-                    ]}
-                  >
+           <FlatList
+  data={data}
+  keyExtractor={(item) => item.id}
+  contentContainerStyle={styles.listContent}
+  refreshing={refreshing}       // 🔹 REQUIRED
+  onRefresh={onRefresh}         // 🔹 REQUIRED
+  showsVerticalScrollIndicator={false}
+  renderItem={({ item }) => (
+    <View style={styles.card}>
+      <View
+        style={[
+          styles.cardIconContainer,
+          item.type === "credit"
+            ? styles.cardIconCredit
+            : styles.cardIconDebit,
+        ]}
+      >
                     <Ionicons
                       name={item.type === "debit" ? "arrow-down" : "arrow-up"}
                       size={20}
