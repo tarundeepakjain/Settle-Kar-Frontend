@@ -1,16 +1,15 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
+  Animated,
+  Easing,
+  FlatList,
+  SafeAreaView,
   StyleSheet,
   Text,
   View,
-  FlatList,
-  ActivityIndicator,
-  SafeAreaView,
-  Animated,
-  Easing,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import BillScannerModal from "../../components/BillScannerModal"; // Scanner component
 
 type Expense = {
   _id: string;
@@ -26,10 +25,12 @@ export default function ExpensesScreen() {
   const [scannerVisible, setScannerVisible] = useState(false);
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const fabScaleAnim = useRef(new Animated.Value(1)).current;
+  // ⭐️ REMOVED: fabScaleAnim is no longer needed
+  // const fabScaleAnim = useRef(new Animated.Value(1)).current;
 
   const fetchExpenses = useCallback(async () => {
     try {
+      // ⚠️ Make sure to replace <YOUR_BACKEND_URL> with your actual API URL
       const response = await fetch("http://<YOUR_BACKEND_URL>/expenses");
       const data = await response.json();
       setExpenses(data);
@@ -136,24 +137,8 @@ export default function ExpensesScreen() {
     </Animated.View>
   );
 
-  // FAB animation & open scanner
-  const animateFab = () => {
-    Animated.sequence([
-      Animated.timing(fabScaleAnim, {
-        toValue: 0.9,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(fabScaleAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    setScannerVisible(true);
-  };
-
+  // ⭐️ REMOVED: animateFab function is no longer needed here
+  
   // Handle OCR success
   const handleSaveBill = (billData: any) => {
     const newExpense: Expense = {
@@ -167,9 +152,6 @@ export default function ExpensesScreen() {
     setExpenses([newExpense, ...expenses]);
     setScannerVisible(false);
   };
-
-  // Handle manual entry fallback
-  // Manual save is handled by BillScannerModal via onSaveBill
 
   if (loading) {
     return (
@@ -222,31 +204,17 @@ export default function ExpensesScreen() {
         />
       </SafeAreaView>
 
-      {/* FAB */}
-      <Animated.View
-        style={{
-          position: "absolute",
-          bottom: 30,
-          right: 30,
-          transform: [{ scale: fabScaleAnim }],
-        }}
-      >
-        <Ionicons
-          name="camera-outline"
-          size={60}
-          color="#FFD700"
-          onPress={animateFab}
-        />
-      </Animated.View>
+      {/* ⭐️ REMOVED: The FAB (Animated.View) that was here is now gone. */}
 
-      {/* Scanner Modal */}
-      {scannerVisible && (
+      {/* ⭐️ MOVED: The BillScannerModal is now controlled by the Tab Navigator */}
+      {/* {scannerVisible && (
         <BillScannerModal
           visible={scannerVisible}
           onClose={() => setScannerVisible(false)}
           onSaveBill={handleSaveBill}
         />
-      )}
+      )} 
+      */}
     </View>
   );
 }

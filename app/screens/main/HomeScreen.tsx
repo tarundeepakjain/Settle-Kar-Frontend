@@ -17,6 +17,9 @@ import { useNavigation } from "@react-navigation/native";
 import { Path, Svg } from "react-native-svg";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { jwtDecode, JwtPayload } from "jwt-decode";
+import PersonalExpenseModal from "../../components/PersonalExpenseModal";
+
+
 export default function HomeScreen() {
   const [open, setOpen] = useState(false);         // FAB menu
   const [chatOpen, setChatOpen] = useState(false); // Chatbot
@@ -26,6 +29,8 @@ export default function HomeScreen() {
   const optionsAnim = useRef(new Animated.Value(0)).current;
  const [name, setName] = useState(""); 
  const navigation = useNavigation<any>();
+ const [showPersonalModal, setShowPersonalModal] = useState(false);
+
 
 // Helper to refresh the access token using the refresh token.
 
@@ -320,12 +325,15 @@ return (
             <TouchableOpacity
               style={[styles.optionButton, styles.optionButton1]}
               activeOpacity={0.8}
+              onPress={() => setShowPersonalModal(true)}
             >
               <View style={styles.optionIconContainer}>
                 <Ionicons name="receipt" size={20} color="#FFD700" />
               </View>
               <Text style={styles.optionText}>Add Expense</Text>
             </TouchableOpacity>
+            
+            
             <TouchableOpacity
               style={[styles.optionButton, styles.optionButton2]}
               activeOpacity={0.8}
@@ -375,6 +383,15 @@ return (
 
       {/* Chatbot */}
       <Chatbot isChatOpen={chatOpen} onClose={() => setChatOpen(false)} />
+      <PersonalExpenseModal
+      visible={showPersonalModal}
+      onClose={() => setShowPersonalModal(false)}
+      onSuccess={() => {
+        console.log("Personal expense added!");
+        // 👉 Optional: refresh transactions here
+      }}
+    />
+
     </View>
   );
 }

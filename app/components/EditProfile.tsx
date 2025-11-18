@@ -12,6 +12,19 @@ import {
     View,
 } from "react-native";
 
+// const handleEdit = async () => {
+//   try {
+//     const response = await fetch("https://settlekar.onrender.com/auth/edit", {
+//       method: "PUT",
+//       headers: {"Content-Type": "application/json"},
+//       body: JSON.stringify({name, email}),
+//     });
+//     const data = await response.json();
+//   } catch (error) {
+//     console.error("Error editing profile:", error);
+//   }
+// }
+
 interface EditProfileProps {
   isVisible: boolean;
   onClose: () => void;
@@ -39,32 +52,48 @@ export default function EditProfile({
   if (!isVisible) return null;
 
   const handleSaveProfile = async () => {
-    if (!name.trim()) {
-      return Alert.alert("Validation", "Name cannot be empty.");
+  if (!name.trim()) {
+    return Alert.alert("Validation", "Name cannot be empty.");
+  }
+  if (name === initialName) {
+    return Alert.alert("No Change", "Name is the same as before.");
+  }
+
+  setIsSaving(true);
+
+  try {
+    const token = await AsyncStorage.getItem("accessToken");
+    if (!token) return Alert.alert("Error", "Authentication required.");
+
+    const response = await fetch("https://settlekar.onrender.com/auth/edit", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({ name })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.log("Edit error:", data);
+      return Alert.alert("Error", data.error || "Failed to update profile");
     }
-    if (name === initialName) {
-      return Alert.alert("No Change", "Name is the same as before.");
-    }
 
-    setIsSaving(true);
+    Alert.alert("Success", "Profile updated successfully!");
 
-    try {
-      const token = await AsyncStorage.getItem("accessToken");
-      if (!token) return Alert.alert("Error", "Authentication required.");
+    onProfileUpdated(name);
+    onClose();
 
-      // ⚙️ Simulate API call (replace later with PUT /user/profile)
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+  } catch (error) {
+    console.error("Profile save error:", error);
+    Alert.alert("Error", "Something went wrong.");
+  } finally {
+    setIsSaving(false);
+  }
+};
 
-      Alert.alert("Success", "Profile updated successfully!");
-      onProfileUpdated(name);
-      onClose();
-    } catch (error) {
-      console.error("Profile save error:", error);
-      Alert.alert("Error", "Failed to update profile.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   return (
     <Modal visible={isVisible} transparent animationType="slide" onRequestClose={onClose}>
