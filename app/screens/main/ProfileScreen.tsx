@@ -1,7 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation } from "@react-navigation/native";
-import { jwtDecode } from "jwt-decode";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -15,19 +11,17 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from "react-native";
+// Note: These imports are standard for Expo apps but may show errors in web-only previewers.
+// They are required for the actual mobile application build.
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import ChangePassword from "../../components/ChangePassword";
 import CurrencySetting from "../../components/CurrencySetting";
 import EditProfile from "../../components/EditProfile";
-
-import { useCurrency } from "../../../context/CurrencyContext"; // ⭐ GLOBAL CURRENCY
-
-interface MyJwtPayload {
-  name: string;
-  email: string;
-  id: string;
-  exp?: number;
-}
+import { useCurrency } from "../../../context/CurrencyContext";
+import { supabase } from "@/utils/supabase";
 
 const ProfileOption = ({
   iconName,
@@ -35,13 +29,7 @@ const ProfileOption = ({
   onPress,
   isDestructive = false,
   detail = "",
-}: {
-  iconName: keyof typeof Ionicons.glyphMap;
-  title: string;
-  onPress: () => void;
-  isDestructive?: boolean;
-  detail?: string;
-}) => (
+}: any) => (
   <TouchableOpacity style={styles.optionRow} onPress={onPress} activeOpacity={0.8}>
     <View
       style={[
@@ -52,205 +40,195 @@ const ProfileOption = ({
       <Ionicons name={iconName} size={22} color={isDestructive ? "#FF4D4D" : "#FFD700"} />
     </View>
     <Text style={[styles.optionTitle, isDestructive && styles.destructiveText]}>{title}</Text>
-    <Text style={styles.optionDetail}>{detail}</Text>
+    {detail ? <Text style={styles.optionDetail}>{detail}</Text> : null}
     <Ionicons name="chevron-forward" size={18} color="#555" />
   </TouchableOpacity>
 );
 
 export default function ProfileScreen() {
   const navigation = useNavigation<any>();
-  const { currency } = useCurrency(); // ⭐ GLOBAL CURRENCY
+  const { currency } = useCurrency();
 
-  const [userData, setUserData] = useState({ name: "Loading...", email: "loading@example.com" });
+  const [userData, setUserData] = useState({
+    name: "Loading...",
+    email: "loading@example.com",
+    lastSignIn: "",
+  });
+
+  const [isLoading, setIsLoading] = useState(false);
   const [isChangePasswordVisible, setIsChangePasswordVisible] = useState(false);
   const [isEditProfileVisible, setIsEditProfileVisible] = useState(false);
+  const [isCurrencyVisible, setIsCurrencyVisible] = useState(false);
 
-  const profileImage =
-    "https://cdn.pixabay.com/photo/2020/11/19/15/32/sculpture-5758884_1280.jpg";
-
-  const iconFloatAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
   useEffect(() => {
-    Animated.loop(
-      Animated.timing(iconFloatAnim, {
-        toValue: 1,
-        duration: 3000,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      })
-    ).start();
-
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
       Animated.spring(scaleAnim, { toValue: 1, friction: 8, tension: 40, useNativeDriver: true }),
     ]).start();
   }, []);
 
-  const getUserFromToken = async () => {
+  // ✅ Load user from Supabase
+  const loadUser = async () => {
     try {
-      const token = await AsyncStorage.getItem("accessToken");
-      if (!token) return null;
-      const decoded = jwtDecode<MyJwtPayload>(token);
-      return decoded;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserData({
+          name: user.user_metadata?.name || user.user_metadata?.full_name || "User",
+          email: user.email ?? "",
+          lastSignIn: user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : "N/A",
+        });
+      }
     } catch (error) {
-      console.error("Error decoding token:", error);
-      return null;
-    }
-  };
-
-  const refreshAccessToken = async (): Promise<string | null> => {
-    try {
-      const refreshToken = await AsyncStorage.getItem("refreshToken");
-      if (!refreshToken) return null;
-
-      const response = await fetch("https://settlekar.onrender.com/auth/refresh", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
-      });
-
-      if (!response.ok) {
-        console.warn("Failed to refresh access token");
-        return null;
-      }
-
-      const data = await response.json();
-      await AsyncStorage.setItem("accessToken", data.accessToken);
-      return data.accessToken;
-    } catch (err) {
-      console.error("Error refreshing token:", err);
-      return null;
-    }
-  };
-
-  const isTokenExpired = (decoded: MyJwtPayload) => {
-    if (!decoded.exp) return true;
-    return Date.now() >= decoded.exp * 1000;
-  };
-
-  const loadUserData = async () => {
-    try {
-      let token = await AsyncStorage.getItem("accessToken");
-      if (!token) return;
-
-      let decoded = jwtDecode<MyJwtPayload>(token);
-
-      if (isTokenExpired(decoded)) {
-        const newToken = await refreshAccessToken();
-        if (!newToken) {
-          handleLogout();
-          return;
-        }
-        token = newToken;
-        decoded = jwtDecode<MyJwtPayload>(token);
-      }
-
-      const newUserData = {
-        name: decoded.name,
-        email: decoded.email,
-      };
-
-      setUserData(newUserData);
-    } catch (err) {
-      console.error("Error loading user data:", err);
+      console.error("Error fetching user:", error);
     }
   };
 
   useEffect(() => {
-    loadUserData();
+    loadUser();
   }, []);
 
+  // ✅ Functional Update Username directly with Supabase
+  const handleUpdateUsername = async (newName: string) => {
+    if (!newName.trim()) return;
+    
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.updateUser({
+        data: { name: newName }
+      });
+
+      if (error) throw error;
+      
+      setUserData(prev => ({ ...prev, name: newName }));
+      
+      if (Platform.OS === 'web') {
+        window.alert("Profile updated successfully!");
+      } else {
+        Alert.alert("Success", "Username updated successfully!");
+      }
+    } catch (error: any) {
+      const msg = error.message || "Failed to update profile";
+      Platform.OS === 'web' ? window.alert(msg) : Alert.alert("Error", msg);
+    } finally {
+      setIsLoading(false);
+      setIsEditProfileVisible(false);
+    }
+  };
+
+  // ✅ Supabase Logout
   const handleLogout = async () => {
-    const confirmLogout =
-      Platform.OS === "web"
-        ? window.confirm("Are you sure you want to logout?")
-        : await new Promise((resolve) =>
-            Alert.alert("Logout", "Are you sure you want to log out?", [
-              { text: "Cancel", onPress: () => resolve(false), style: "cancel" },
-              { text: "Logout", onPress: () => resolve(true), style: "destructive" },
-            ])
-          );
+    const confirm = Platform.OS === 'web' 
+      ? window.confirm("Are you sure you want to logout?") 
+      : await new Promise((resolve) => {
+          Alert.alert("Logout", "Are you sure you want to log out?", [
+            { text: "Cancel", onPress: () => resolve(false), style: "cancel" },
+            { text: "Logout", onPress: () => resolve(true), style: "destructive" },
+          ]);
+        });
 
-    if (!confirmLogout) return;
+    if (!confirm) return;
 
-    await AsyncStorage.multiRemove(["accessToken", "refreshToken"]);
-    navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+    try {
+      await supabase.auth.signOut();
+      navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.contentWrapper}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          
           <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
             <View style={styles.editableCard}>
               <View style={styles.avatarContainer}>
-                <Image source={{ uri: profileImage }} style={styles.avatar} />
+                <Image
+                  source={{ uri: `https://api.dicebear.com/7.x/initials/svg?seed=${userData.name}` }}
+                  style={styles.avatar}
+                />
                 <TouchableOpacity
                   style={styles.avatarEditButton}
                   onPress={() => setIsEditProfileVisible(true)}
                 >
-                  <Ionicons name="create-outline" size={16} color="#0a1421" />
+                  <Ionicons name="camera-outline" size={18} color="#0a1421" />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.info}>
-                <Text style={styles.label}>Full Name</Text>
-                <Text style={styles.staticText}>{userData.name}</Text>
-
-                <Text style={styles.label}>Email Address</Text>
-                <Text style={styles.staticText}>{userData.email}</Text>
-
-                <Text style={styles.label}>Currency</Text>
-                <Text style={styles.staticText}>{currency}</Text>
+                <Text style={styles.userNameText}>{userData.name}</Text>
+                <Text style={styles.userEmailText}>{userData.email}</Text>
+                <View style={styles.badgeRow}>
+                  <View style={styles.badge}><Text style={styles.badgeText}>Verified User</Text></View>
+                  <Text style={styles.lastLoginText}>Active: {userData.lastSignIn}</Text>
+                </View>
               </View>
             </View>
           </Animated.View>
 
+          {/* Account Settings */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Account</Text>
+            <Text style={styles.sectionTitle}>Security & Account</Text>
             <View style={styles.sectionBody}>
+              <ProfileOption
+                iconName="person-outline"
+                title="Edit Username"
+                onPress={() => setIsEditProfileVisible(true)}
+              />
               <ProfileOption
                 iconName="lock-closed-outline"
                 title="Change Password"
                 onPress={() => setIsChangePasswordVisible(true)}
               />
-              <ProfileOption
-                iconName="wallet-outline"
-                title="Linked Accounts"
-                onPress={() => Alert.alert("Linked Accounts", "Feature coming soon!")}
-              />
             </View>
           </View>
 
+          {/* Preferences */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Preferences</Text>
             <View style={styles.sectionBody}>
-              <CurrencySetting />
+              <ProfileOption
+                iconName="cash-outline"
+                title="Default Currency"
+                detail={currency}
+                onPress={() => setIsCurrencyVisible(true)}
+              />
               <ProfileOption
                 iconName="notifications-outline"
-                title="Notifications"
-                onPress={() => Alert.alert("Notifications", "Coming soon!")}
+                title="Push Notifications"
+                onPress={() => {}}
               />
             </View>
           </View>
 
+          {/* Support */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Support & About</Text>
+            <Text style={styles.sectionTitle}>Help & Support</Text>
             <View style={styles.sectionBody}>
               <ProfileOption
                 iconName="help-circle-outline"
-                title="Help & FAQ"
-                onPress={() => navigation.navigate("Help")}
+                title="Help Center"
+                onPress={() => {}}
               />
               <ProfileOption
-                iconName="document-text-outline"
-                title="Terms & Privacy"
-                onPress={() => navigation.navigate("Terms")}
+                iconName="shield-checkmark-outline"
+                title="Privacy & Terms"
+                onPress={() => {}}
+              />
+              <ProfileOption
+                iconName="information-circle-outline"
+                title="App Version"
+                detail="1.2.4"
+                onPress={() => {}}
               />
             </View>
           </View>
+
+          <View style={{ height: 40 }} />
         </ScrollView>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -259,113 +237,139 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </SafeAreaView>
 
+      {/* Modals */}
       <EditProfile
         isVisible={isEditProfileVisible}
         onClose={() => setIsEditProfileVisible(false)}
         initialName={userData.name}
         userEmail={userData.email}
-        onProfileUpdated={(newName) => setUserData((prev) => ({ ...prev, name: newName }))}
+        onProfileUpdated={handleUpdateUsername}
       />
 
       <ChangePassword
         isVisible={isChangePasswordVisible}
         onClose={() => setIsChangePasswordVisible(false)}
       />
+
+      <CurrencySetting
+        isVisible={isCurrencyVisible}
+        onClose={() => setIsCurrencyVisible(false)}
+      />
+
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#FFD700" />
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0a1421" },
-  contentWrapper: { flex: 1, padding: 20, justifyContent: "space-between" },
-  scrollContent: { paddingBottom: 100 },
+  contentWrapper: { flex: 1, paddingHorizontal: 20 },
+  scrollContent: { paddingTop: 20, paddingBottom: 120 },
   editableCard: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    padding: 20,
-    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    padding: 24,
+    borderRadius: 20,
     marginBottom: 30,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 215, 0, 0.1)",
   },
-  avatarContainer: { position: "relative", marginBottom: 20 },
+  avatarContainer: { position: "relative", marginBottom: 15 },
   avatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    borderWidth: 3,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
     borderColor: "#FFD700",
+    backgroundColor: "#1a2a3a",
   },
   avatarEditButton: {
     position: "absolute",
     bottom: 0,
     right: 0,
     backgroundColor: "#FFD700",
-    padding: 8,
+    padding: 10,
     borderRadius: 20,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: "#0a1421",
   },
-  info: { width: "100%" },
-  label: { color: "#ccc", fontSize: 14, marginBottom: 5, marginTop: 10 },
-  staticText: {
-    backgroundColor: "rgba(255,255,255,0.05)",
-    color: "#fff",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 10,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.05)",
+  info: { alignItems: "center" },
+  userNameText: { color: "#fff", fontSize: 22, fontWeight: "700", marginBottom: 4 },
+  userEmailText: { color: "#aaa", fontSize: 14, marginBottom: 15 },
+  badgeRow: { flexDirection: 'row', alignItems: 'center' },
+  badge: { 
+    backgroundColor: 'rgba(255, 215, 0, 0.15)', 
+    paddingHorizontal: 10, 
+    paddingVertical: 4, 
+    borderRadius: 12, 
+    marginRight: 10 
   },
-  section: { marginBottom: 20 },
+  badgeText: { color: '#FFD700', fontSize: 11, fontWeight: '700' },
+  lastLoginText: { color: '#666', fontSize: 11 },
+  section: { marginBottom: 25 },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "600",
     color: "#FFD700",
-    marginBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 215, 0, 0.1)",
-    paddingBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 10,
     marginLeft: 5,
+    opacity: 0.8,
   },
   sectionBody: {
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderRadius: 15,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: "rgba(255,255,255,0.05)",
   },
   optionRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.1)",
+    borderBottomColor: "rgba(255,255,255,0.05)",
   },
   optionIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 15,
   },
   optionTitle: { fontSize: 16, color: "#fff", flex: 1, fontWeight: "500" },
-  optionDetail: { fontSize: 14, color: "#aaa", marginRight: 10 },
+  optionDetail: { fontSize: 14, color: "#FFD700", marginRight: 10, opacity: 0.7 },
   destructiveText: { color: "#FF4D4D" },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#ff4d4d",
-    paddingVertical: 12,
-    borderRadius: 10,
-    marginTop: 20,
+    paddingVertical: 15,
+    borderRadius: 15,
     position: "absolute",
-    bottom: 20,
+    bottom: 30,
     left: 20,
     right: 20,
-    zIndex: 10,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
   },
-  logoutText: { color: "#fff", fontSize: 16, fontWeight: "600", marginLeft: 8 },
+  logoutText: { color: "#fff", fontSize: 16, fontWeight: "700", marginLeft: 10 },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999
+  }
 });

@@ -120,13 +120,13 @@ export default function AppNavigator() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Restore session on app start
+    // 1️⃣ Restore session on app start (Google / Email / Refresh)
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
     });
 
-    // Listen to auth state changes
+    // 2️⃣ Listen to auth changes (LOGIN, LOGOUT, OAUTH)
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
@@ -138,7 +138,7 @@ export default function AppNavigator() {
     };
   }, []);
 
-  if (loading) return null;
+  if (loading) return null; // splash/loading
 
   return (
     <CurrencyProvider>
