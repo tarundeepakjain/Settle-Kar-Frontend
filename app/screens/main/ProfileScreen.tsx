@@ -20,7 +20,7 @@ import ChangePassword from "../../components/ChangePassword";
 import CurrencySetting from "../../components/CurrencySetting";
 import EditProfile from "../../components/EditProfile";
 
-import { useCurrency } from "../../context/CurrencyContext"; // ⭐ GLOBAL CURRENCY
+import { useCurrency } from "../../../context/CurrencyContext"; // ⭐ GLOBAL CURRENCY
 
 interface MyJwtPayload {
   name: string;

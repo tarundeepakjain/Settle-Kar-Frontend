@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import groupsData from "../../utils/groups.json";
+import groupsData from "../../../utils/groups.json";
 
 export default function GroupList() {
   const navigation = useNavigation<any>();

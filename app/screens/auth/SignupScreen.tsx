@@ -1,8 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View, Animated, Easing, SafeAreaView, Platform } from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, Animated, Easing, SafeAreaView, Platform, AppState } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@/utils/supabase';
+
+// AppState.addEventListener('change', (state) => {
+//   if (state === 'active') {
+//     supabase.auth.startAutoRefresh()
+//   } else {
+//     supabase.auth.stopAutoRefresh()
+//   }
+// })
 
 export default function SignupScreen() {
   const [name, setName] = useState("");
@@ -68,30 +77,36 @@ export default function SignupScreen() {
   const handleSignup = async () => {
     if (!isOtpVerified) {
       alert("Please verify OTP before signing up.");
-      console.log("otp not verified");
       return;
     }
-    try {
-      const response = await fetch("https://settlekar.onrender.com/auth/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-      const data = await response.json();
 
-      if (response.ok) {
-        await AsyncStorage.setItem("accessToken", data.accessToken);
-        await AsyncStorage.setItem("refreshToken", data.refreshToken);
-        alert("Signup successful!");
-        navigation.navigate("MainTabs");
-      } else {
-        console.log(data.message());
-        alert(data.message || "Signup failed");
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name:name, // stored in user_metadata
+          },
+        },
+      });
+
+      if (error) {
+        alert(error.message);
+        return;
       }
+
+      alert("Signup successful! You can now login.");
+
+      // ❗ DO NOT navigate to MainTabs
+      // AppNavigator will handle session-based navigation
+      navigation.goBack();
+
     } catch (err) {
       console.log(err);
     }
   };
+
 
   useEffect(() => {
     Animated.loop(

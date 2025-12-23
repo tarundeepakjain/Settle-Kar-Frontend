@@ -1,49 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View, Animated, Easing, SafeAreaView, Platform, Image } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Animated,
+  Easing,
+  SafeAreaView,
+  Platform,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '@/utils/supabase';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import API from '../../services/api';
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   const navigation = useNavigation<any>();
-
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
-useEffect(() => {
-  const verifyUser = async () => {
-    const accessToken = await AsyncStorage.getItem("accessToken") 
-    if (accessToken) {
-      console.log("accces token found");
-      navigation.navigate("MainTabs"); 
-    } else {
-      navigation.navigate("Login");    }
-  };
-  verifyUser();
-}, []);
-const handleLogin = async () => {
-  try {
-    const response = await API.post('/auth/login', { email, password });
-    
-    const { accessToken,refreshToken, user } = response.data;
-     await AsyncStorage.setItem("accessToken", accessToken);
-    await AsyncStorage.setItem("refreshToken", refreshToken);
-    await AsyncStorage.setItem("user", JSON.stringify(user));
 
-    alert('Login successful!');
-    navigation.navigate('MainTabs');
-  } catch (error) {
-    if (typeof error === 'object' && error !== null) {
-      const err = error as { response?: { data?: any }; message?: string };
-      console.log(err.response?.data || err.message);
-    } else {
-      console.log(String(error));
-    }
-    alert('Invalid email or password');
-  }
-};
+  // 🔁 Floating animation (UNCHANGED)
   useEffect(() => {
     Animated.loop(
       Animated.timing(iconFloatAnim, {
@@ -66,39 +46,40 @@ const handleLogin = async () => {
     animationDelay: `${delay}ms`,
   });
 
+  // ✅ CORRECT Supabase login
+  const handleLogin = async () => {
+    if (loading) return;
+
+    setLoading(true);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      if (error.message.includes('Invalid login credentials')) {
+        alert('Email not verified or incorrect credentials');
+      } else {
+        alert(error.message);
+      }
+    }
+
+
+    // ❗ DO NOT navigate here
+    // AppNavigator will react to session automatically
+
+    setLoading(false);
+  };
 
   const handleSignup = () => {
-    // Navigate to Signup screen
     navigation.navigate('Signup');
   };
 
-  // const handleGoogleLogin = () => {
-  //   signInWithPopup(auth, provider)
-  //   .then((result) => {
-  //       // This gives you a Google Access Token. You can use it to access the Google API.
-  //       const credential = GoogleAuthProvider.credentialFromResult(result);
-  //       const token = credential ? credential.accessToken : null;
-  //       // The signed-in user info.
-  //       const user = result.user;
-  //       navigation.navigate('MainTabs');
-  //       // IdP data available using getAdditionalUserInfo(result)
-  //       // ...
-  //     }).catch((error) => {
-  //       // Handle Errors here.
-  //       const errorCode = error.code;
-  //       const errorMessage = error.message;
-  //       // The email of the user's account used.
-  //       const email = error.customData.email;
-  //       // The AuthCredential type that was used.
-  //       const credential = GoogleAuthProvider.credentialFromError(error);
-  //       // ...
-  //     });
-  // };
   return (
     <View style={styles.container}>
       {/* Animated Background Elements */}
       <View style={styles.background}>
-        {/* Stars and Floating Icons */}
         <Animated.View style={[styles.floatingIcon, { left: '10%', top: '25%' }, getFloatStyle(0)]}>
           <Ionicons name="wallet-outline" size={30} color="rgba(255, 255, 255, 0.3)" />
         </Animated.View>
@@ -112,12 +93,10 @@ const handleLogin = async () => {
           <Ionicons name="star-outline" size={20} color="rgba(255, 255, 255, 0.5)" />
         </Animated.View>
 
-        {/* Gradient Orbs */}
         <View style={[styles.orb, styles.orb1]} />
         <View style={[styles.orb, styles.orb2]} />
       </View>
 
-      {/* Main Login Card */}
       <SafeAreaView style={styles.contentWrapper}>
         <View style={styles.card}>
           <View style={styles.header}>
@@ -126,12 +105,13 @@ const handleLogin = async () => {
             </View>
             <Text style={styles.title}>SettleKar</Text>
           </View>
+
           <Text style={styles.description}>
             Split your expenses, not your friendships!
             {"\n"}
             <Text style={styles.joinText}>Join SettleKar today!</Text>
           </Text>
-          
+
           <View style={styles.form}>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email Address</Text>
@@ -146,7 +126,7 @@ const handleLogin = async () => {
               />
               <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Password</Text>
               <TextInput
@@ -157,39 +137,33 @@ const handleLogin = async () => {
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.passwordToggle}>
-                <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#9CA3AF" />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.passwordToggle}
+              >
+                <Ionicons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color="#9CA3AF"
+                />
               </TouchableOpacity>
             </View>
-            
-            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-              <Ionicons name="wallet-outline" size={16} color="black" style={styles.buttonIcon} />
-              <Text style={styles.loginButtonText}>Start Splitting Expenses</Text>
-            </TouchableOpacity>
 
-            <View style={styles.socialButtonsContainer}>
-              {/* <TouchableOpacity style={[styles.socialButton, styles.googleButton]} onPress={handleGoogleLogin}>
-                <Ionicons name="logo-google" size={25} color="#000000ff" />
-              </TouchableOpacity> */}
-              <TouchableOpacity style={[styles.socialButton, styles.linkedinButton]}>
-                <Ionicons name="logo-linkedin" size={25} color="#fff" />
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.socialButton, styles.xButton]}>
-                <Ionicons name="logo-twitter" size={25} color="#fff" />
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.socialButton, styles.facebookButton]}>
-                <Ionicons name="logo-facebook" size={25} color="#fff" />
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              <Ionicons name="wallet-outline" size={16} color="black" style={styles.buttonIcon} />
+              <Text style={styles.loginButtonText}>
+                {loading ? "Signing in..." : "Start Splitting Expenses"}
+              </Text>
+            </TouchableOpacity>
 
             <TouchableOpacity onPress={handleSignup}>
               <Text style={styles.signupText}>
                 Don't have an account? <Text style={styles.signupLink}>Join the community</Text>
               </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity onPress={() => {}}>
-              <Text style={styles.forgotPasswordText}>Forgot your password?</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -197,6 +171,7 @@ const handleLogin = async () => {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

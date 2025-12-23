@@ -1,12 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// ⭐ ADDED: Currency Provider
-import { CurrencyProvider } from "../context/CurrencyContext";
+import { supabase } from "../../utils/supabase";
+
+// ⭐ Context
+import { CurrencyProvider } from "../../context/CurrencyContext";
 
 // Auth Screens
 import LoginScreen from "../screens/auth/LoginScreen";
@@ -30,8 +32,6 @@ import BillScannerModal from "../components/BillScannerModal";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
-
-const SKIP_AUTH = false;
 
 const tabIconBaseMap: { [key: string]: string } = {
   Home: "home",
@@ -116,33 +116,52 @@ function MainTabs() {
 }
 
 export default function AppNavigator() {
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Restore session on app start
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
+    });
+
+    // Listen to auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  if (loading) return null;
+
   return (
-    // ⭐ ADDED: Wrap entire app
     <CurrencyProvider>
-      <Stack.Navigator initialRouteName={SKIP_AUTH ? "MainTabs" : "Login"}>
-        {!SKIP_AUTH && (
-          <Stack.Group screenOptions={{ headerShown: false }}>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {!session ? (
+          <Stack.Group>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Signup" component={SignupScreen} />
           </Stack.Group>
+        ) : (
+          <Stack.Group>
+            <Stack.Screen name="MainTabs" component={MainTabs} />
+            <Stack.Screen name="Expenses" component={ExpensesScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="Language" component={LanguageScreen} />
+            <Stack.Screen name="Currency" component={CurrencyScreen} />
+            <Stack.Screen name="GroupDetails" component={GroupDetailsScreen} />
+            <Stack.Screen name="Help" component={HelpScreen} />
+            <Stack.Screen name="Terms" component={TermsScreen} />
+          </Stack.Group>
         )}
-
-        <Stack.Group>
-          <Stack.Screen
-            name="MainTabs"
-            component={MainTabs}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen name="Expenses" component={ExpensesScreen} />
-          <Stack.Screen name="Settings" component={SettingsScreen} />
-          <Stack.Screen name="Language" component={LanguageScreen} />
-          <Stack.Screen name="Currency" component={CurrencyScreen} />
-          <Stack.Screen name="GroupDetails" component={GroupDetailsScreen} />
-          <Stack.Screen name="Help" component={HelpScreen} />
-          <Stack.Screen name="Terms" component={TermsScreen} />
-        </Stack.Group>
       </Stack.Navigator>
-    </CurrencyProvider> // ⭐ WRAPPED HERE
+    </CurrencyProvider>
   );
 }
 
