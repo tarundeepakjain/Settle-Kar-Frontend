@@ -1,52 +1,58 @@
-# Welcome to your Expo app 👋
+# Settle Kar – Frontend
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Overview
+Settle Kar Frontend is a mobile application interface developed using **React Native** and **Expo**.  
+The project focuses on providing a clean and intuitive user interface for managing group expenses and settlements in a Splitwise-like application.
 
-## Get started
+This repository contains the frontend implementation that interacts with backend APIs to display user data, balances, and expense details.
 
-1. Install dependencies
+---
 
+## Features
+- User-friendly interface for group expense management  
+- View group-wise balances and settlements  
+- Add and track shared expenses  
+- Smooth navigation across screens  
+- Responsive design for mobile devices  
+
+---
+
+## Technologies Used
+- **Framework:** React Native  
+- **Tooling:** Expo  
+- **Language:** JavaScript  
+- **UI Components:** React Native components  
+- **State Management:** React hooks  
+
+---
+
+## Project Structure
+- Modular component-based architecture  
+- Screens organized by functionality  
+- Reusable UI components  
+- API integration layer for backend communication  
+
+---
+
+## Contributors
+This project was developed collaboratively.  
+The contributors and their GitHub profiles are listed below:
+
+- **Tarun Jain** – https://github.com/tarundeepakjain  
+- **Aadit Shah** – https://github.com/Aaditshah11
+- **Shiv Patel** – https://github.com/Shiv-Patel-416
+- **Avadhesh Nagar** – https://github.com/avadhesh11
+- **Dev Joshi** – https://github.com/devj-arch
+- **Aahan Poddar** – https://github.com/aehnz
+
+---
+
+## How to Run
+1. Clone the repository  
+2. Install dependencies:
    ```bash
    npm install
-   ```
-
-2. Start the app
-
+3. Start the Expo development server:
    ```bash
    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-
-hello guys!!
+4. Run the app on an emulator or physical device using Expo Go
