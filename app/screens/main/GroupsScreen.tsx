@@ -21,7 +21,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { jwtDecode } from "jwt-decode";
 import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
-// Local code generator (8-character version)
+
 const generateGroupCode = (): string => {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let code = "";

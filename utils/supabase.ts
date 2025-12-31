@@ -1,20 +1,46 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient } from '@supabase/supabase-js';
-import { Platform } from 'react-native';
+import 'react-native-url-polyfill/auto'
+import { createClient } from '@supabase/supabase-js'
+import * as SecureStore from 'expo-secure-store'
+import { Platform } from 'react-native'
 
-const supabaseUrl = "https://ssymorpmlapwohoccxub.supabase.co";
-const supabasePublishableKey = "sb_publishable_hTz8aPV3rLyK0WHRSd4VSw_3V7z8pDe";
-
-const storage =
-  Platform.OS === 'web'
-    ? undefined // Supabase will automatically use localStorage on web
-    : AsyncStorage;
-  
-export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
-  auth: {
-    storage:storage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: Platform.OS === 'web',
+// 🔹 Cross-platform storage adapter
+const ExpoStorage = {
+  getItem: async (key: string) => {
+    if (Platform.OS === 'web') {
+      if (typeof window === 'undefined') return null
+      return localStorage.getItem(key)
+    }
+    return SecureStore.getItemAsync(key)
   },
-})
+
+  setItem: async (key: string, value: string) => {
+    if (Platform.OS === 'web') {
+      if (typeof window === 'undefined') return
+      localStorage.setItem(key, value)
+      return
+    }
+    await SecureStore.setItemAsync(key, value)
+  },
+
+  removeItem: async (key: string) => {
+    if (Platform.OS === 'web') {
+      if (typeof window === 'undefined') return
+      localStorage.removeItem(key)
+      return
+    }
+    await SecureStore.deleteItemAsync(key)
+  },
+}
+
+export const supabase = createClient(
+  process.env.EXPO_PUBLIC_SUPABASE_URL!,
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      storage: ExpoStorage,
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: Platform.OS === 'web',
+    },
+  }
+)

@@ -17,7 +17,7 @@ import {
 // They are required for the actual mobile application build.
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import ChangePassword from "../../components/ChangePassword";
+import ChangePassword from "../../components/ForgotPassword";
 import CurrencySetting from "../../components/CurrencySetting";
 import EditProfile from "../../components/EditProfile";
 import { useCurrency } from "../../../context/CurrencyContext";
@@ -104,11 +104,7 @@ export default function ProfileScreen() {
       
       setUserData(prev => ({ ...prev, name: newName }));
       
-      if (Platform.OS === 'web') {
-        window.alert("Profile updated successfully!");
-      } else {
-        Alert.alert("Success", "Username updated successfully!");
-      }
+     
     } catch (error: any) {
       const msg = error.message || "Failed to update profile";
       Platform.OS === 'web' ? window.alert(msg) : Alert.alert("Error", msg);
@@ -246,15 +242,13 @@ export default function ProfileScreen() {
         onProfileUpdated={handleUpdateUsername}
       />
 
-      <ChangePassword
-        isVisible={isChangePasswordVisible}
-        onClose={() => setIsChangePasswordVisible(false)}
-      />
+      {isChangePasswordVisible && (
+        <ChangePassword isVisible={isChangePasswordVisible} onClose={() => setIsChangePasswordVisible(false)} />
+      )}
 
-      <CurrencySetting
-        isVisible={isCurrencyVisible}
-        onClose={() => setIsCurrencyVisible(false)}
-      />
+      {isCurrencyVisible && (
+        <CurrencySetting />
+      )}
 
       {isLoading && (
         <View style={styles.loadingOverlay}>

@@ -18,7 +18,7 @@ import { Path, Svg } from "react-native-svg";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { jwtDecode, JwtPayload } from "jwt-decode";
 import PersonalExpenseModal from "../../components/PersonalExpenseModal";
-
+import { supabase } from "@/utils/supabase";
 
 export default function HomeScreen() {
   const [open, setOpen] = useState(false);         // FAB menu
@@ -108,36 +108,17 @@ export default function HomeScreen() {
 //     console.error("Error fetching user data:", err);
 //   }
 // };
-interface MyJwtPayload extends JwtPayload {
-  name: string;
-  email: string;
-  userId: string;
-}
- const getUserFromToken = async () => {
-  try {
-    const token = await AsyncStorage.getItem("accessToken");
-    if (!token) return null;
 
-    const decoded = jwtDecode<MyJwtPayload>(token);
-    return decoded;
-  } catch (error) {
-    console.error("Error decoding token:", error);
-    return null;
-  }
-};
+
 
 //   useEffect(() => {
 //   fetchUserData();
 // }, []);
-useEffect(() => {
-  (async () => {
-    const user = await getUserFromToken();
-    if (user) {
-      setName(user.name);
-      console.log("User info from token:", user);
-    }
-  })();
-}, []);
+supabase.auth.onAuthStateChange((event, session) => {
+  // console.log(event, session?.user);
+  setName(session?.user?.user_metadata?.name.trim().split(" ")[0]);
+})
+
   useEffect(() => {
     Animated.loop(
       Animated.timing(iconFloatAnim, {

@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -92,7 +93,25 @@ export default function LoginScreen() {
       setGoogleLoading(false);
     }
   };
+  const sendResetLink = async () => {
+    if (!email) {
+      Alert.alert('Error', 'Please enter your email')
+      return
+    }
 
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'myapp://reset-password'
+    })
+
+    if (error) {
+      Alert.alert('Error', error.message)
+    } else {
+      Alert.alert(
+        'Success',
+        'Password reset link sent to your email'
+      )
+    }
+  }
   const handleSignup = () => {
     navigation.navigate('Signup');
   };
@@ -211,8 +230,21 @@ export default function LoginScreen() {
                 Don't have an account? <Text style={styles.signupLink}>Join the community</Text>
               </Text>
             </TouchableOpacity>
+           <TouchableOpacity
+  onPress={() => navigation.navigate('ForgotPassword')}
+>
+  <Text style={{
+    color: '#FFD700',
+    textAlign: 'right',
+    marginTop: 6,
+    fontSize: 13,
+  }}>
+    Forgot password?
+  </Text>
+</TouchableOpacity>
           </View>
         </View>
+        
       </SafeAreaView>
     </View>
   );

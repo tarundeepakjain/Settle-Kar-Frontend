@@ -26,70 +26,63 @@ export default function SignupScreen() {
 
   // --- Send OTP ---
   const handleSendOtp = async () => {
-    if (!email) {
-      alert("Please enter your email first.");
-      return;
-    }
-    try {
-      // Replace this with your API for sending OTP
-      console.log("handle send otp called");
-      const response = await fetch("https://settlekar.onrender.com/auth/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
+  if (!email) {
+    alert("Please enter your email first")
+    return
+  }
 
-      const data = await response.json();
-      if (response.ok) {
-        setIsOtpSent(true);
-        alert(`OTP sent to ${email}`);
-      } else {
-        alert(data.message || "Failed to send OTP");
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  };
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: true, // creates user if not exists
+    },
+  })
+
+  if (error) {
+    console.log(error)
+  } else {
+    setIsOtpSent(true)
+    alert(`OTP sent to ${email}`)
+  }
+}
+
 
   // --- Verify OTP ---
-  const handleVerifyOtp = async () => {
-    try {
-      // Replace with your API for verifying OTP
-      const response = await fetch("https://settlekar.onrender.com/auth/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp }),
-      });
+const handleVerifyOtp = async () => {
+  if (!otp) {
+    alert("Please enter OTP")
+    return
+  }
 
-      const data = await response.json();
-      if (response.ok) {
-        setIsOtpVerified(true);
-        alert("OTP verified successfully!");
-      } else {
-        alert(data.message || "Invalid OTP");
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  };
+  const { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token: otp,
+    type: 'email',
+  })
+
+  if (error) {
+    alert(error.message)
+  } else {
+    setIsOtpVerified(true)
+    alert("OTP verified successfully!")
+  }
+}
 
   // --- Signup ---
   const handleSignup = async () => {
-    if (!isOtpVerified) {
-      alert("Please verify OTP before signing up.");
-      return;
-    }
+   
 
     try {
-      const { error } = await supabase.auth.signUp({
+       const { error } = await supabase.auth.signUp({
         email,
-        password,
-        options: {
-          data: {
-            name:name, // stored in user_metadata
-          },
-        },
-      });
+    password,
+    options:{
+ data: {
+      name,
+    },
+    }
+   
+  });
 
       if (error) {
         alert(error.message);
@@ -203,7 +196,7 @@ export default function SignupScreen() {
             </View>
 
             {/* OTP Flow */}
-            <TouchableOpacity style={styles.otpButton} onPress={handleSendOtp}>
+            {/* <TouchableOpacity style={styles.otpButton} onPress={handleSendOtp}>
               <Text style={styles.otpButtonText}>{isOtpSent ? "Resend OTP" : "Send OTP"}</Text>
             </TouchableOpacity>
 
@@ -226,12 +219,12 @@ export default function SignupScreen() {
               <TouchableOpacity style={styles.verifyOtpButton} onPress={handleVerifyOtp}>
                 <Text style={styles.otpButtonText}>Verify OTP</Text>
               </TouchableOpacity>
-            )}
+            )} */}
 
             <TouchableOpacity
-              style={[styles.signupButton, { opacity: isOtpVerified ? 1 : 0.5 }]}
+              style={[styles.signupButton ]}
               onPress={handleSignup}
-              disabled={!isOtpVerified}
+             
             >
               <Ionicons name="wallet-outline" size={16} color="black" style={styles.buttonIcon} />
               <Text style={styles.signupButtonText}>Sign Up</Text>

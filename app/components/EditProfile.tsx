@@ -7,11 +7,12 @@ import {
     Modal,
     StyleSheet,
     Text,
+    Platform,
     TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
-
+import { supabase } from "@/utils/supabase";
 // const handleEdit = async () => {
 //   try {
 //     const response = await fetch("https://settlekar.onrender.com/auth/edit", {
@@ -43,6 +44,7 @@ export default function EditProfile({
   const [name, setName] = useState(initialName);
   const [isSaving, setIsSaving] = useState(false);
 
+
   // Reset the name when modal opens/closes
   React.useEffect(() => {
     if (isVisible) setName(initialName);
@@ -62,26 +64,17 @@ export default function EditProfile({
   setIsSaving(true);
 
   try {
-    const token = await AsyncStorage.getItem("accessToken");
-    if (!token) return Alert.alert("Error", "Authentication required.");
+    const { error } = await supabase.auth.updateUser({
+        data: { name: name }
+      });
 
-    const response = await fetch("https://settlekar.onrender.com/auth/edit", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + token
-      },
-      body: JSON.stringify({ name })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.log("Edit error:", data);
-      return Alert.alert("Error", data.error || "Failed to update profile");
-    }
-
-    Alert.alert("Success", "Profile updated successfully!");
+      if (error) throw error;      
+      if (Platform.OS === 'web') {
+        window.alert("Profile updated successfully!");
+      } else {
+        Alert.alert("Success", "Username updated successfully!");
+      }
+    
 
     onProfileUpdated(name);
     onClose();

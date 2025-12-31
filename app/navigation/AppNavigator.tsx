@@ -29,7 +29,8 @@ import TermsScreen from "../screens/main/TermsScreen";
 
 // Modal
 import BillScannerModal from "../components/BillScannerModal";
-
+import ForgotPasswordScreen from "../components/ForgotPassword";
+import ResetPasswordScreen from "../components/ResetPassword";
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -147,6 +148,8 @@ export default function AppNavigator() {
           <Stack.Group>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Signup" component={SignupScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+<Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
           </Stack.Group>
         ) : (
           <Stack.Group>
