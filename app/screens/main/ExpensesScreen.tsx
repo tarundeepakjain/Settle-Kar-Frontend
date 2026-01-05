@@ -9,8 +9,9 @@ import {
   StyleSheet,
   Text,
   View,
+  Alert,
 } from "react-native";
-
+import { getAccessToken } from "@/helper/auth";
 type Expense = {
   _id: string;
   category: string;
@@ -30,10 +31,32 @@ export default function ExpensesScreen() {
 
   const fetchExpenses = useCallback(async () => {
     try {
+      const token = await getAccessToken();
+      if (!token) {
+        Alert.alert("Error", "Session expired. Please login again.");
+        return;
+      }
       // ⚠️ Make sure to replace <YOUR_BACKEND_URL> with your actual API URL
-      const response = await fetch("http://<YOUR_BACKEND_URL>/expenses");
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_BACKEND_URL!}/transaction/get-transactions`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.log("Fetch failed:", response.status, text);
+        Alert.alert("Error", "Failed to fetch expenses");
+        return;
+      }
+
       const data = await response.json();
       setExpenses(data);
+
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 600,

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Modal,
   View,
@@ -6,9 +6,11 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Ionicons } from "@expo/vector-icons";
+import { getUserDetails,getAccessToken } from "@/helper/auth";
+import type { User } from "@supabase/supabase-js";
 
 type Props = {
   visible: boolean;
@@ -16,51 +18,82 @@ type Props = {
   onSuccess?: (result?: any) => void;
 };
 
-// changed code
-export default function PersonalExpenseModal({ visible, onClose, onSuccess }: Props) {
+export default function PersonalExpenseModal({
+  visible,
+  onClose,
+  onSuccess,
+}: Props) {
   const [title, setTitle] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const currentUser = await getUserDetails();
+      setUser(currentUser);
+    };
+
+    loadUser();
+  }, []);
 
   const handleSave = async () => {
+    if (!user) {
+      Alert.alert("Error", "User not authenticated");
+      return;
+    }
+
     if (!title.trim() || !amount.trim()) {
-      alert("Please enter a title and amount");
+      Alert.alert("Validation", "Please enter a title and amount");
       return;
     }
 
     const numericAmount = Number(amount);
     if (isNaN(numericAmount) || numericAmount <= 0) {
-      alert("Enter a valid amount");
+      Alert.alert("Validation", "Enter a valid amount");
       return;
     }
 
     try {
-      const token = await AsyncStorage.getItem("accessToken");
+      setLoading(true);
 
-      const res = await fetch("https://settlekar.onrender.com/user/transaction/personal", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          description: title.trim(),
-          amount: numericAmount,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error);
+      const token = await getAccessToken();
+      if (!token) {
+        Alert.alert("Error", "Session expired. Please login again.");
         return;
       }
 
-      onSuccess?.();
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_BACKEND_URL!}/transaction/add-personal`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            description: title.trim(),
+            amount: numericAmount,
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        Alert.alert("Error", data?.error || "Failed to add expense");
+        return;
+      }
+
+      onSuccess?.(data);
       setTitle("");
       setAmount("");
       onClose();
     } catch (error) {
-      alert("Something went wrong");
-      console.log(error);
+      console.error(error);
+      Alert.alert("Error", "Something went wrong");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -88,12 +121,22 @@ export default function PersonalExpenseModal({ visible, onClose, onSuccess }: Pr
           />
 
           <View style={styles.row}>
-            <TouchableOpacity style={[styles.btn, styles.cancel]} onPress={onClose}>
+            <TouchableOpacity
+              style={[styles.btn, styles.cancel]}
+              onPress={onClose}
+              disabled={loading}
+            >
               <Text style={styles.cancelTxt}>Cancel</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.btn, styles.save]} onPress={handleSave}>
-              <Text style={styles.saveTxt}>Add</Text>
+            <TouchableOpacity
+              style={[styles.btn, styles.save]}
+              onPress={handleSave}
+              disabled={loading}
+            >
+              <Text style={styles.saveTxt}>
+                {loading ? "Saving..." : "Add"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
