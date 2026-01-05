@@ -21,6 +21,8 @@ import TotalExpenses from "@/app/components/TotalExpenses";
 import { Ionicons } from "@expo/vector-icons"; // ADDED for icons in Group Details
 import { jwtDecode } from "jwt-decode";
 import * as Clipboard from "expo-clipboard";
+import { getAccessToken } from "@/helper/auth";
+import { supabase } from "@/utils/supabase";
 // Define the two possible tab states
 type ActiveTab = "Expenses" | "Details";
 type Member = {

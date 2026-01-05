@@ -21,7 +21,8 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { jwtDecode } from "jwt-decode";
 import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
-
+import { getAccessToken } from "@/helper/auth";
+import { supabase } from "@/utils/supabase";
 const generateGroupCode = (): string => {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let code = "";
@@ -42,7 +43,7 @@ type Group = {
   _id: string;
   name: string;
   description?: string;
-  members: Member[];
+  members: number;
   code?: string;
   inviteid:string;
   createdBy?:string;
@@ -134,7 +135,7 @@ export default function GroupsScreen() {
     console.log("join grp called");
 
     try {
-      let token = await AsyncStorage.getItem("accessToken");
+      let token = await getAccessToken();
       if (!token) {
         Alert.alert("No token found. Please log in again.");
         return;
@@ -142,7 +143,7 @@ export default function GroupsScreen() {
 
       console.log(inputCode);
       const response = await fetch(
-        "https://settlekar.onrender.com/group/join",
+        "http://localhost:5000/group/join",
         {
           method: "Post",
           headers: {
@@ -170,11 +171,9 @@ export default function GroupsScreen() {
           "Invalid ",
           "User already in group",
           [{ text: "Try Again" }]
-     
         );
         const updatedGroups = await fetchGroups();
-        if (updatedGroups) setGroups(updatedGroups);
-        
+        if (updatedGroups) setGroups(updatedGroups);    
         setCodeModalVisible(false); // <-- Close the modal on success
         setInputCode("");
         }
@@ -182,8 +181,6 @@ export default function GroupsScreen() {
         
       }
 
-
-      // Simulate joining process
       Alert.alert(
         "Success!",
         `You have joined the group with code ${inputCode}`,);
@@ -214,7 +211,7 @@ export default function GroupsScreen() {
 
   const getUserFromToken = async () => {
     try {
-      const token = await AsyncStorage.getItem("accessToken");
+      const token = await getAccessToken();
       if (!token) return null;
 
       const decoded = jwtDecode<MyJwtPayload>(token);
@@ -224,70 +221,31 @@ export default function GroupsScreen() {
       return null;
     }
   };
+const normalizeGroups = (data: any[]): Group[] => {
+  return data.map((item) => ({
+    _id: item.Groups.id,
+    name: item.Groups.group_name,
+    inviteid: item.Groups.invite_id,
+    code: item.Groups.invite_id,
+    createdBy: item.Groups.created_by,
+    members: item.Groups.Group_members.length || [],
+  }));
+};
 
-  const refreshAccessToken = async (): Promise<string | null> => {
-    try {
-      const refreshToken = await AsyncStorage.getItem("refreshToken");
-      if (!refreshToken) return null;
 
-      const response = await fetch(
-        "https://settlekar.onrender.com/auth/refresh",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refreshToken }),
-        }
-      );
 
-      if (!response.ok) {
-        console.warn("Failed to refresh access token");
-        return null;
-      }
-
-      const data = await response.json();
-      await AsyncStorage.setItem("accessToken", data.accessToken);
-      console.log("🔄 Access token refreshed successfully!");
-      return data.accessToken;
-    } catch (err) {
-      console.error("Error refreshing token:", err);
-      return null;
-    }
-  };
-
-  const isTokenExpired = (decoded: MyJwtPayload) => {
-    if (!decoded.exp) return true;
-    return Date.now() >= decoded.exp * 1000;
-  };
-useEffect(() => {
-  (async () => {
-    const user = await getUserFromToken();
-    setCurrentUser(user);
-  })();
-}, []);
   const fetchGroups = React.useCallback(async (): Promise<
     Group[] | undefined
   > => {
     try {
-      let token = await AsyncStorage.getItem("accessToken");
+      let token = await getAccessToken();
       if (!token) {
         Alert.alert("No token found. Please log in again.");
         return;
       }
-      let decoded = jwtDecode<MyJwtPayload>(token);
-
-      while (isTokenExpired(decoded)) {
-        console.log("⚠️ Access token expired, refreshing...");
-        const newToken = await refreshAccessToken();
-        if (!newToken) {
-          console.log("❌ Failed to refresh token, logging out...");
-          return;
-        }
-        token = newToken;
-        decoded = jwtDecode<MyJwtPayload>(token);
-      }
 
       const response = await fetch(
-        "https://settlekar.onrender.com/group/my-groups",
+        "http://localhost:5000/group/fetch",
         {
           method: "GET",
           headers: {
@@ -308,8 +266,7 @@ useEffect(() => {
 
       if (response.ok) {
         console.log("✅ Groups fetched:", data);
-        console.log(data);
-        return data as Group[];
+        return normalizeGroups(data.groups);
       } else {
         console.error("❌ Failed to fetch groups. Full response:", data);
         Alert.alert(
@@ -336,14 +293,13 @@ useEffect(() => {
         return;
       }
 
-      const token = await AsyncStorage.getItem("accessToken");
+      const token = await getAccessToken();
       if (!token) {
         Alert.alert("No token found. Please log in again.");
         return;
       }
-      const user = await getUserFromToken();
 
-      const response = await fetch("https://settlekar.onrender.com/group/new", {
+      const response = await fetch("http://localhost:5000/group/new", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -352,8 +308,7 @@ useEffect(() => {
         body: JSON.stringify({
           name: newGroupName,
           description: newGroupDesc,
-          members: [user?.id],
-          createdBy: user?.id,
+
         }),
       });
 
@@ -681,7 +636,7 @@ const deleteGroup = async (groupId: string) => {
   <View style={styles.groupMetaLeft}>
     <Ionicons name="person" size={12} color="#a0a0a0" />
     <Text style={styles.groupMetaText}>
-      {item.members.length} members
+      {item.members} members
     </Text>
   </View>
 
