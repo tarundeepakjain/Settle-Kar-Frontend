@@ -24,6 +24,7 @@ import { jwtDecode } from "jwt-decode";
 import * as Clipboard from "expo-clipboard";
 import { getAccessToken } from "@/helper/auth";
 import { supabase } from "@/utils/supabase";
+
 // Define the two possible tab states
 type ActiveTab = "Expenses" | "Details";
 type Member = {
@@ -54,6 +55,7 @@ export default function GroupDetails({ route }: { route: any }) {
   const [modalVisible, setModalVisible] = useState(false);
   const iconFloatAnim = useRef(new Animated.Value(0)).current;
  const [currentUser, setCurrentUser] = useState<any>(null);
+ const [groupSize, setGroupSize] = useState<number>(0);
   // Floating icon animation
   useEffect(() => {
     Animated.loop(
@@ -82,6 +84,7 @@ const handleCopyInviteId = async () => {
   }
 };
   // Fetch group details
+
   const normalizeGroups = (data: any[]): Group[] => {
   return data.map((item) => {
     const group = item.group ?? item.Groups ?? item;
@@ -99,6 +102,7 @@ const handleCopyInviteId = async () => {
         role: m.role,
         name: m.Profiles?.name ?? "Unknown",
         email: m.Profiles?.email,
+
       })),
     };
   });
@@ -124,6 +128,7 @@ const handleCopyInviteId = async () => {
     );
      const data=await res.json();
      const normalized = normalizeGroups([data]);
+    setGroupSize(normalized[0].members.length);
     setGroup(normalized[0]);
     if (!res.ok) {
       throw new Error(data.message || "Failed to fetch group");
@@ -160,7 +165,7 @@ const handleCopyInviteId = async () => {
       if (!token) return;
 
       const res = await fetch(
-        `${process.env.EXPO_PUBLIC_BACKEND_URL!}/transaction/add-group/${groupId}`,
+        `${process.env.EXPO_PUBLIC_BACKEND_URL!}/transaction/add-group/${groupSize}/${groupId}`,
         {
           method: "POST",
           headers: {
