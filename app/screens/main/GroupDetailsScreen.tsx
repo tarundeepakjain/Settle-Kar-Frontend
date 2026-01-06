@@ -160,7 +160,7 @@ const handleCopyInviteId = async () => {
       if (!token) return;
 
       const res = await fetch(
-        `${process.env.EXPO_PUBLIC_BACKEND_URL!}/group/${groupId}/add-expense`,
+        `${process.env.EXPO_PUBLIC_BACKEND_URL!}/transaction/add-group/${groupId}`,
         {
           method: "POST",
           headers: {
