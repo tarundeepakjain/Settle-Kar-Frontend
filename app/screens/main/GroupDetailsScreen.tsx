@@ -149,7 +149,7 @@ const handleCopyInviteId = async () => {
     const payload = {
       desc: expense.title,
       amount: Number(expense.amount),
-      paidby: expense.paidById,
+      paidById: expense.paidById,
       splitAmong: expense.splitBetweenIds,
     };
 
