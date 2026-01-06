@@ -14,6 +14,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { jwtDecode} from "jwt-decode";
+import { getAccessToken } from "@/helper/auth";
 interface MyJwtPayload {
   name: string;
   email: string;
@@ -94,26 +95,14 @@ export default function TransactionsScreen() {
   };
     const fetchTransactions = async () => {
       try {
-        let token = await AsyncStorage.getItem("accessToken");
+        let token = await getAccessToken();
         if (!token) {
           Alert.alert("Session Expired", "Please log in again.");
           return;
         }
-        let decoded = jwtDecode<MyJwtPayload>(token);
-            
-                  while(isTokenExpired(decoded)) {
-                    console.log("⚠️ Access token expired, refreshing...");
-                    const newToken = await refreshAccessToken();
-                    if (!newToken) {
-                      console.log("❌ Failed to refresh token, logging out...");
-                      
-                      return;
-                    }
-                    token = newToken;
-                    decoded = jwtDecode<MyJwtPayload>(token);
-                  }
+      
           
-        const res = await fetch("https://settlekar.onrender.com/auth/transaction", {
+        const res = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/transaction/get-transactions`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -129,11 +118,10 @@ export default function TransactionsScreen() {
         const json = await res.json();
         console.log("Transactions fetched:", json);
 
-        if (json.transactions) {
-          const mapped = json.transactions.map((t: any, i: number) => ({
-            id: i.toString(),
-            kind:t.type,
-            title: t.title || "Unknown",
+        if (Array.isArray(json)) {
+          const mapped = json.map((t: any, i: number) => ({
+            kind:t.category,
+            title: t.description || "Unknown",
             amount: t.amount<0?t.amount*(-1):t.amount,
             date: new Date(t.date).toLocaleDateString(),
             type: t.amount < 0 ? "credit" : "debit",
