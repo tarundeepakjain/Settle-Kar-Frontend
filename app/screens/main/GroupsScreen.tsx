@@ -143,7 +143,7 @@ export default function GroupsScreen() {
 
       console.log(inputCode);
       const response = await fetch(
-        `${process.env.EXPO_PUBLIC_BACKEND_URL}/group/join`,
+        `${process.env.EXPO_PUBLIC_BACKEND_URL!}/group/join`,
         {
           method: "Post",
           headers: {
@@ -245,7 +245,7 @@ const normalizeGroups = (data: any[]): Group[] => {
       }
 
       const response = await fetch(
-        `${process.env.EXPO_PUBLIC_BACKEND_URL}/group/fetch`,
+        `${process.env.EXPO_PUBLIC_BACKEND_URL!}/group/fetch`,
         {
           method: "GET",
           headers: {
