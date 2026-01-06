@@ -3,6 +3,7 @@ import React from "react";
 import { Text } from "react-native";
 import AppNavigator from "./navigation/AppNavigator";
 import * as Linking from "expo-linking";
+import { getAccessToken } from "@/helper/auth";
 
 const linking = {
   // Use Linking.createURL to be more platform-agnostic
