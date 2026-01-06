@@ -9,7 +9,8 @@ import {
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
-  Alert,
+  Platform,
+    Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AddExpenseModal from "../../components/AddExpenseModal";
@@ -27,7 +28,9 @@ import { supabase } from "@/utils/supabase";
 type ActiveTab = "Expenses" | "Details";
 type Member = {
   _id: string;
-  name?: string;
+  role:string,
+  name?:string
+
 };
 
 type Group = {
@@ -40,12 +43,7 @@ type Group = {
   createdBy?:string;
 };
 
-interface MyJwtPayload {
-  name: string;
-  email: string;
-  id: string;
-  exp?: number;
-}
+
 export default function GroupDetails({ route }: { route: any }) {
   const { groupId } = route.params;
   const [group, setGroup] = useState<any>(null);
@@ -67,26 +65,12 @@ export default function GroupDetails({ route }: { route: any }) {
       })
     ).start();
   }, []);
- const getUserFromToken = async () => {
-    try {
-      const token = await AsyncStorage.getItem("accessToken");
-      if (!token) return null;
-
-      const decoded = jwtDecode<MyJwtPayload>(token);
-      return decoded;
-    } catch (error) {
-      console.error("Error decoding token:", error);
-      return null;
-    }
+useEffect(() => {
+  const loadUser = async () => {
+    const { data } = await supabase.auth.getUser();
+    setCurrentUser(data.user);
   };
-  useEffect(() => {
-  const fetchUser = async () => {
-    const token = await AsyncStorage.getItem("accessToken");
-    if (!token) return;
-    const payload = JSON.parse(atob(token.split(".")[1])); // Decode JWT payload
-    setCurrentUser(payload);
-  };
-  fetchUser();
+  loadUser();
 }, []);
 const handleCopyInviteId = async () => {
   try {
@@ -98,34 +82,60 @@ const handleCopyInviteId = async () => {
   }
 };
   // Fetch group details
-  const fetchGroupDetails = async () => {
-    try {
-      const token = await AsyncStorage.getItem("accessToken");
-      if (!token) return Alert.alert("No token found");
+  const normalizeGroups = (data: any[]): Group[] => {
+  return data.map((item) => {
+    const group = item.group ?? item.Groups ?? item;
 
-      const res = await fetch(`https://settlekar.onrender.com/group/${groupId}`, {
+    return {
+      _id: group.id,
+      name: group.group_name,
+      description:group.description,
+      inviteid: group.invite_id,
+      code: group.invite_id,
+      createdBy: group.created_by,
+
+      members: (group.Group_members || []).map((m: any) => ({
+        _id: m.user_id,
+        role: m.role,
+        name: m.Profiles?.name ?? "Unknown",
+        email: m.Profiles?.email,
+      })),
+    };
+  });
+};
+
+ const fetchGroupDetails = async () => {
+  try {
+    setLoading(true);
+    const token=await getAccessToken();
+    if(!token){
+      console.log("token not found");
+          return;
+    }
+    const res = await fetch(
+      `${process.env.EXPO_PUBLIC_BACKEND_URL}/group/fetch/${groupId}`,
+      {
+        method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`, 
         },
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        console.log(data);
-        setGroup(data);
-        setExpenses(data.expenses || []);
-      } else {
-        Alert.alert("Error", data.message || "Failed to fetch group");
       }
-    } catch (err) {
-      console.error(err);
-      Alert.alert("Error fetching group");
-    } finally {
-      setLoading(false);
+    );
+     const data=await res.json();
+     const normalized = normalizeGroups([data]);
+    setGroup(normalized[0]);
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to fetch group");
     }
-  };
-
+  } catch (error) {
+    console.error("Fetch group error:", error);
+    throw error;
+  }
+  finally{
+     setLoading(false);    
+  }
+};
   useEffect(() => {
     fetchGroupDetails();
   }, [groupId]);
@@ -146,11 +156,11 @@ const handleCopyInviteId = async () => {
     console.log("Expense payload being sent:", payload);
 
     try {
-      const token = await AsyncStorage.getItem("accessToken");
+      const token = await getAccessToken();
       if (!token) return;
 
       const res = await fetch(
-        `https://settlekar.onrender.com/group/${groupId}/add-expense`,
+        `${process.env.EXPO_PUBLIC_BACKEND_URL}/group/${groupId}/add-expense`,
         {
           method: "POST",
           headers: {
@@ -169,11 +179,10 @@ const handleCopyInviteId = async () => {
         return Alert.alert("Error", data.message || "Failed to add expense");
       }
 
-      // ✅ Immediately show the new expense with payer name
     const newExpense = {
   ...data.expense,
   paidBy: group.members.find((m:Member) => m._id === data.expense.paidby) || {
-    _id: data.expense.paidby,
+    id: data.expense.paidby,
     name: "Unknown"
   }
 };
@@ -201,7 +210,7 @@ const handleDeleteMember = async (memberid: string) => {
             if (!token) return;
 
             const res = await fetch(
-              `https://settlekar.onrender.com/group/${groupId}/delete-member`,
+              `${process.env.EXPO_PUBLIC_BACKEND_URL}/group/${groupId}/delete-member`,
               {
                 method: "DELETE",
                 headers: {
@@ -342,15 +351,26 @@ const handleDeleteMember = async (memberid: string) => {
     </View>
   );
   // --- END Component ---
-
-  if (loading)
+ if (loading) {
     return (
-      <ActivityIndicator
-        size="large"
-        color="#fff"
-        style={{ flex: 1, justifyContent: "center" }}
-      />
+      <View style={styles.container}>
+        <View style={styles.background}>
+          <View style={styles.gradientOverlay} />
+          <View style={[styles.orb, styles.orb1]}>
+            <View style={styles.orbInner} />
+          </View>
+          <View style={[styles.orb, styles.orb2]}>
+            <View style={styles.orbInner} />
+          </View>
+        </View>
+        <View style={styles.loader}>
+          <ActivityIndicator size="large" color="#FFD700" />
+          <Text style={styles.loadingText}>Loading groups...</Text>
+        </View>
+      </View>
     );
+  }
+
 
   if (!group)
     return (
@@ -421,9 +441,88 @@ const handleDeleteMember = async (memberid: string) => {
 }
 
 const styles = StyleSheet.create({
- 
-  container: { flex: 1, backgroundColor: "#0a1421" },
-  contentWrapper: { flex: 1 },
+  container: {
+     flex: 1,
+     backgroundColor: "#0a1421",
+   },
+   background: {
+     ...StyleSheet.absoluteFillObject,
+     overflow: "hidden",
+   },
+   gradientOverlay: {
+     ...StyleSheet.absoluteFillObject,
+     backgroundColor: "transparent",
+   },
+   floatingIcon: {
+     position: "absolute",
+   },
+   iconGlow: {
+     ...Platform.select({
+       ios: {
+         shadowColor: "#FFD700",
+         shadowOffset: { width: 0, height: 0 },
+         shadowOpacity: 0.6,
+         shadowRadius: 15,
+       },
+       android: {
+         elevation: 8,
+       },
+     }),
+   },
+   orb: {
+     position: "absolute",
+     borderRadius: 9999,
+     opacity: 0.12,
+   },
+   orb1: {
+     width: 200,
+     height: 200,
+     backgroundColor: "#FFD700",
+     top: "15%",
+     left: "10%",
+   },
+   orb2: {
+     width: 240,
+     height: 240,
+     backgroundColor: "#2e86de",
+     bottom: "20%",
+     right: "15%",
+   },
+   orb3: {
+     width: 160,
+     height: 160,
+     backgroundColor: "#96E6A1",
+     top: "60%",
+     left: "60%",
+     opacity: 0.08,
+   },
+   orbInner: {
+     width: "100%",
+     height: "100%",
+     borderRadius: 9999,
+     borderWidth: 1,
+     borderColor: "rgba(255, 255, 255, 0.1)",
+   },
+   contentWrapper: {
+     flex: 1,
+     paddingHorizontal: 20,
+     paddingTop: 60,
+     position: "relative",
+     zIndex: 1,
+   },
+   loader: {
+     flex: 1,
+     justifyContent: "center",
+     alignItems: "center",
+     gap: 16,
+     zIndex: 2,
+   },
+   loadingText: {
+     color: "#a0a0a0",
+     fontSize: 14,
+     letterSpacing: 0.3,
+   },
+  
   tabRow: {
     flexDirection: "row",
     borderBottomWidth: 1,

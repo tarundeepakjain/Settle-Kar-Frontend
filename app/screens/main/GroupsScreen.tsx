@@ -143,7 +143,7 @@ export default function GroupsScreen() {
 
       console.log(inputCode);
       const response = await fetch(
-        "http://localhost:5000/group/join",
+        `${process.env.EXPO_PUBLIC_BACKEND_URL}/group/join`,
         {
           method: "Post",
           headers: {
@@ -245,7 +245,7 @@ const normalizeGroups = (data: any[]): Group[] => {
       }
 
       const response = await fetch(
-        "http://localhost:5000/group/fetch",
+        `${process.env.EXPO_PUBLIC_BACKEND_URL}/group/fetch`,
         {
           method: "GET",
           headers: {
@@ -299,7 +299,7 @@ const normalizeGroups = (data: any[]): Group[] => {
         return;
       }
 
-      const response = await fetch("http://localhost:5000/group/new", {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL!}/group/new`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -308,7 +308,6 @@ const normalizeGroups = (data: any[]): Group[] => {
         body: JSON.stringify({
           name: newGroupName,
           description: newGroupDesc,
-
         }),
       });
 
@@ -346,7 +345,7 @@ const deleteGroup = async (groupId: string) => {
             }
 
             const response = await fetch(
-              `https://settlekar.onrender.com/group/${groupId}`,
+              `${process.env.EXPO_PUBLIC_BACKEND_URL}/group/${groupId}`,
               {
                 method: "DELETE",
                 headers: {
@@ -619,10 +618,7 @@ const deleteGroup = async (groupId: string) => {
                           </Text>
                         </View>
                         {/* Invite ID Pill */}
-                        <View style={styles.inviteIdPill}>
-                          
-                          <Text style={styles.inviteIdText}>Invite ID: {item.inviteid}</Text>
-                        </View>
+                        
                                         
                     </View>
                
