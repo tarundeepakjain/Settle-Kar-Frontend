@@ -69,36 +69,53 @@ const handleVerifyOtp = async () => {
 }
 
   // --- Signup ---
-  const handleSignup = async () => {
-   
+const handleSignup = async () => {
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name,
+        },
+      },
+    });
 
-    try {
-       const { error } = await supabase.auth.signUp({
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    // ✅ IMPORTANT: user is inside data.user
+    const user = data.user;
+
+    if (!user) {
+      alert("User not created");
+      return;
+    }
+
+    // ✅ Use correct table name & correct id
+    const { error: profileError } = await supabase
+      .from("Profiles")
+      .insert({
+        id: user.id,
+        name,
         email,
-    password,
-    options:{
- data: {
-      name,
-    },
+      });
+
+    if (profileError) {
+      alert(profileError.message);
+      return;
     }
-   
-  });
 
-      if (error) {
-        alert(error.message);
-        return;
-      }
+    alert("Signup successful! You can now login.");
+    navigation.goBack();
 
-      alert("Signup successful! You can now login.");
+  } catch (err) {
+    console.log(err);
+  }
+};
 
-      // ❗ DO NOT navigate to MainTabs
-      // AppNavigator will handle session-based navigation
-      navigation.goBack();
-
-    } catch (err) {
-      console.log(err);
-    }
-  };
 
 
   useEffect(() => {
