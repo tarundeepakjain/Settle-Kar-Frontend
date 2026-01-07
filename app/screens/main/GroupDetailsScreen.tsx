@@ -133,6 +133,23 @@ const handleCopyInviteId = async () => {
     if (!res.ok) {
       throw new Error(data.message || "Failed to fetch group");
     }
+
+    const txRes = await fetch(
+      `${process.env.EXPO_PUBLIC_BACKEND_URL!}/transaction/get-group/${groupId}`,
+      {
+        method:"GET",
+        headers:{
+          "Content-Type":"application/json",
+          Authorization:`Bearer ${token}`,
+        },
+      }
+    );
+    if(!txRes.ok){
+      throw new Error(`Failed to fetch group Transactions.`);
+    }
+    const txData = await txRes.json();
+    setExpenses(txData.data);
+
   } catch (error) {
     console.error("Fetch group error:", error);
     throw error;
@@ -191,8 +208,6 @@ const handleCopyInviteId = async () => {
     name: "Unknown"
   }
 };
-
-      setExpenses((prev) => [...prev, newExpense]);
       setModalVisible(false);
       Alert.alert("Success", "Expense added!");
     } catch (err) {
