@@ -282,12 +282,12 @@ export default function GroupDetails({ route }: { route: any }) {
         <View style={detailsStyles.glassCard}>
            <Text style={[
              styles.balanceAmount, 
-             { color: myBalance < 0 ? '#10B981' : '#FF5252' }
+             { color: myBalance >= 0 ? '#10B981' : '#FF5252' }
            ]}>
-             {myBalance < 0 ? `+₹${myBalance}` : `-₹${Math.abs(myBalance)}`}
+             {myBalance >= 0 ? `+₹${myBalance}` : `-₹${Math.abs(myBalance)}`}
            </Text>
            <Text style={styles.balanceSubtext}>
-             {myBalance >= 0 ? "You are owed in total" : "You owe in total"}
+             {myBalance >= 0 ? "You are owed in total" : "You borrowed in total"}
            </Text>
         </View>
 
