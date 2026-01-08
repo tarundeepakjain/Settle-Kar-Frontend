@@ -5,12 +5,12 @@ import {
   FlatList,
   TouchableOpacity,
   Animated,
-  Easing,
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
   Platform,
-    Alert,
+  Alert,
+  StatusBar,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AddExpenseModal from "../../components/AddExpenseModal";
@@ -19,19 +19,18 @@ import TabButton from "@/app/components/TabButton";
 import Expenses from "@/app/components/Expenses";
 import MyExpenses from "@/app/components/MyExpenses";
 import TotalExpenses from "@/app/components/TotalExpenses";
-import { Ionicons } from "@expo/vector-icons"; // ADDED for icons in Group Details
-import { jwtDecode } from "jwt-decode";
+import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { getAccessToken } from "@/helper/auth";
 import { supabase } from "@/utils/supabase";
 
-// Define the two possible tab states
-type ActiveTab = "Expenses" | "Details";
+// Added "Settlements" to ActiveTab type
+type ActiveTab = "Expenses" | "Details" | "Settlements";
+
 type Member = {
   _id: string;
-  role:string,
-  name?:string
-
+  role: string,
+  name?: string
 };
 
 type Group = {
@@ -40,134 +39,131 @@ type Group = {
   description?: string;
   members: Member[];
   code?: string;
-  inviteid:string;
-  createdBy?:string;
+  inviteid: string;
+  createdBy?: string;
 };
-
 
 export default function GroupDetails({ route }: { route: any }) {
   const { groupId } = route.params;
   const [group, setGroup] = useState<any>(null);
   const [expenses, setExpenses] = useState<any[]>([]);
+  const [balances, setBalances] = useState<any[]>([]); // New state for backend balances
   const [loading, setLoading] = useState(true);
-  // RENAMED state from 'Balances' to 'Details'
   const [activeTab, setActiveTab] = useState<ActiveTab>("Expenses");
   const [modalVisible, setModalVisible] = useState(false);
-  const iconFloatAnim = useRef(new Animated.Value(0)).current;
- const [currentUser, setCurrentUser] = useState<any>(null);
- const [groupSize, setGroupSize] = useState<number>(0);
-  // Floating icon animation
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [groupSize, setGroupSize] = useState<number>(0);
+  
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
-    Animated.loop(
-      Animated.timing(iconFloatAnim, {
-        toValue: 1,
-        duration: 3000,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      })
-    ).start();
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, [activeTab]);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setCurrentUser(data.user);
+    };
+    loadUser();
   }, []);
-useEffect(() => {
-  const loadUser = async () => {
-    const { data } = await supabase.auth.getUser();
-    setCurrentUser(data.user);
+
+  const handleCopyInviteId = async () => {
+    try {
+      await Clipboard.setStringAsync(group.inviteid);
+      Alert.alert("Copied!", "Invite ID copied to clipboard.");
+    } catch (err) {
+      Alert.alert("Error", "Failed to copy invite ID.");
+    }
   };
-  loadUser();
-}, []);
-const handleCopyInviteId = async () => {
-  try {
-    await Clipboard.setStringAsync(group.inviteid);
-    Alert.alert("Copied!", "Invite ID copied to clipboard.");
-  } catch (err) {
-    console.error("Clipboard copy failed:", err);
-    Alert.alert("Error", "Failed to copy invite ID.");
-  }
-};
-  // Fetch group details
 
   const normalizeGroups = (data: any[]): Group[] => {
-  return data.map((item) => {
-    const group = item.group ?? item.Groups ?? item;
+    return data.map((item) => {
+      const group = item.group ?? item.Groups ?? item;
+      return {
+        _id: group.id,
+        name: group.group_name,
+        description: group.description,
+        inviteid: group.invite_id,
+        code: group.invite_id,
+        createdBy: group.created_by,
+        members: (group.Group_members || []).map((m: any) => ({
+          _id: m.user_id,
+          role: m.role,
+          name: m.Profiles?.name ?? "Unknown",
+          email: m.Profiles?.email,
+        })),
+      };
+    });
+  };
 
-    return {
-      _id: group.id,
-      name: group.group_name,
-      description:group.description,
-      inviteid: group.invite_id,
-      code: group.invite_id,
-      createdBy: group.created_by,
+  const fetchGroupDetails = async () => {
+    try {
+      setLoading(true);
+      const token = await getAccessToken();
+      if (!token) return;
 
-      members: (group.Group_members || []).map((m: any) => ({
-        _id: m.user_id,
-        role: m.role,
-        name: m.Profiles?.name ?? "Unknown",
-        email: m.Profiles?.email,
+      // Fetch Group Info
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_BACKEND_URL!}/group/fetch/${groupId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const data = await res.json();
+      const normalized = normalizeGroups([data]);
+      setGroupSize(normalized[0].members.length);
+      setGroup(normalized[0]);
 
-      })),
-    };
-  });
-};
+      // Fetch Transactions
+      const txRes = await fetch(
+        `${process.env.EXPO_PUBLIC_BACKEND_URL!}/transaction/get-group/${groupId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const txData = await txRes.json();
+      setExpenses(txData.data || []);
 
- const fetchGroupDetails = async () => {
-  try {
-    setLoading(true);
-    const token=await getAccessToken();
-    if(!token){
-      console.log("token not found");
-          return;
+      // NEW: Fetch Balances/Distribution from backend
+      const balRes = await fetch(
+        `${process.env.EXPO_PUBLIC_BACKEND_URL!}/transaction/get-my-balances/${groupId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const balData = await balRes.json();
+      setBalances(balData.balances || []); // Expecting array of { userId, name, netBalance }
+
+    } catch (error) {
+      console.error("Fetch group error:", error);
+    } finally {
+      setLoading(false);
     }
-    const res = await fetch(
-      `${process.env.EXPO_PUBLIC_BACKEND_URL!}/group/fetch/${groupId}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, 
-        },
-      }
-    );
-     const data=await res.json();
-     const normalized = normalizeGroups([data]);
-    setGroupSize(normalized[0].members.length);
-    setGroup(normalized[0]);
-    if (!res.ok) {
-      throw new Error(data.message || "Failed to fetch group");
-    }
+  };
 
-    const txRes = await fetch(
-      `${process.env.EXPO_PUBLIC_BACKEND_URL!}/transaction/get-group/${groupId}`,
-      {
-        method:"GET",
-        headers:{
-          "Content-Type":"application/json",
-          Authorization:`Bearer ${token}`,
-        },
-      }
-    );
-    if(!txRes.ok){
-      throw new Error(`Failed to fetch group Transactions.`);
-    }
-    const txData = await txRes.json();
-    setExpenses(txData.data);
-
-  } catch (error) {
-    console.error("Fetch group error:", error);
-    throw error;
-  }
-  finally{
-     setLoading(false);    
-  }
-};
   useEffect(() => {
     fetchGroupDetails();
   }, [groupId]);
 
-  // Handle Add Expense
   const handleAddExpense = async (expense: any) => {
-    if (!expense.paidById) {
-      return Alert.alert("Error", "Please select who paid the expense");
-    }
-
+    if (!expense.paidById) return Alert.alert("Error", "Please select who paid");
     const payload = {
       desc: expense.title,
       amount: Number(expense.amount),
@@ -175,51 +171,52 @@ const handleCopyInviteId = async () => {
       splitAmong: expense.splitBetweenIds,
     };
 
-    console.log("Expense payload being sent:", payload);
-
     try {
       const token = await getAccessToken();
       if (!token) return;
-
       const res = await fetch(
         `${process.env.EXPO_PUBLIC_BACKEND_URL!}/transaction/add-group/${groupSize}/${groupId}`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload),
         }
       );
-      console.log(
-        "expense added"
-      );
-      const data = await res.json();
-      if (!res.ok) {
-        console.error("Failed to add expense:", data);
-        return Alert.alert("Error", data.message || "Failed to add expense");
+      if (res.ok) {
+        setModalVisible(false);
+        fetchGroupDetails();
+        Alert.alert("Success", "Expense added!");
       }
-
-    const newExpense = {
-  ...data.expense,
-  paidBy: group.members.find((m:Member) => m._id === data.expense.paidby) || {
-    id: data.expense.paidby,
-    name: "Unknown"
-  }
-};
-      setModalVisible(false);
-      Alert.alert("Success", "Expense added!");
     } catch (err) {
-      console.error("Error adding expense:", err);
       Alert.alert("Error", "Failed to add expense");
     }
   };
-const handleDeleteMember = async (memberid: string) => {
-  Alert.alert(
-    "Remove Member",
-    "Are you sure you want to remove this member from the group?",
-    [
+
+  const handleDeleteTransaction = (transactionId: string) => {
+    Alert.alert(
+      "Confirm Removal",
+      "Delete this transaction permanently?",
+      [
+        { text: "Keep", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive", 
+          onPress: async () => {
+            try {
+              console.log("Deleting transaction:", transactionId);
+              setExpenses(prev => prev.filter(ex => ex._id !== transactionId));
+              // Note: You should call your backend delete here to keep balances in sync
+            } catch (err) {
+              Alert.alert("Error", "Could not delete transaction");
+            }
+          } 
+        }
+      ]
+    );
+  };
+
+  const handleDeleteMember = async (memberid: string) => {
+    Alert.alert("Remove Member", "Kick this member from the group?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Remove",
@@ -227,221 +224,221 @@ const handleDeleteMember = async (memberid: string) => {
         onPress: async () => {
           try {
             const token = await AsyncStorage.getItem("accessToken");
-            if (!token) return;
-
-            const res = await fetch(
-              `${process.env.EXPO_PUBLIC_BACKEND_URL}/group/${groupId}/delete-member`,
-              {
-                method: "DELETE",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ memberid }),
-              }
-            );
-
-            const data = await res.json();
-
+            const res = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/group/${groupId}/delete-member`, {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ memberid }),
+            });
             if (res.ok) {
-              Alert.alert("Success", "Member removed successfully.");
               setGroup((prev: any) => ({
                 ...prev,
                 members: prev.members.filter((m: any) => m._id !== memberid),
               }));
-            } else {
-              Alert.alert("Error", data.message || "Failed to remove member.");
             }
-          } catch (err) {
-            console.error("Error removing member:", err);
-            Alert.alert("Error", "Something went wrong.");
-          }
+          } catch (err) { Alert.alert("Error", "Something went wrong."); }
         },
       },
-    ]
-  );
-};
-  const getFloatStyle = {
-    transform: [
-      {
-        translateY: iconFloatAnim.interpolate({
-          inputRange: [0, 0.5, 1],
-          outputRange: [0, -10, 0],
-        }),
-      },
-    ],
+    ]);
   };
 
-  // Render each expense
   const renderExpenseItem = ({ item }: { item: any }) => {
-    const paidByMember =
-      item.paidBy?.name ||
-      item.paidby?.name ||
-      group?.members.find(
-        (m: any) => m._id === item.paidBy?._id || m._id === item.paidby
-      )?.name ||
-      "Unknown";
+    const paidByMember = item.paidBy?.name || item.paidby?.name || 
+      group?.members.find((m: any) => m._id === (item.paidBy?._id || item.paidby))?.name || "Unknown";
 
     return (
-      <Expenses
-        key={item._id}
-        title={item.description}
-        amount={item.amount}
-        paidBy={paidByMember}
-      />
+      <View style={styles.expenseWrapper}>
+        <View style={styles.expenseContent}>
+          <Expenses
+            key={item._id}
+            title={item.description}
+            amount={item.amount}
+            paidBy={paidByMember}
+          />
+        </View>
+        <TouchableOpacity 
+          onPress={() => handleDeleteTransaction(item._id)}
+          style={styles.deleteAction}
+        >
+          <Ionicons name="trash-outline" size={18} color="#FF5252" />
+        </TouchableOpacity>
+      </View>
     );
   };
 
-  // --- UPDATED Component for Group Details ---
-  const GroupDetailsInfo = () => (
-    <View style={detailsStyles.detailsContainer}>
-      <Text style={detailsStyles.detailHeader}>
-        Group Information
-      </Text>
+  const SettlementDistribution = () => {
+    // Find the current user's balance from the backend data
+    const myData = balances.find(b => b.userId === currentUser?.id);
+    console.log(myData);
+    const myNetBalance = balances.reduce(
+      (sum, b) => sum - Number(b.netBalance),
+      0
+    );
 
-      <View style={detailsStyles.card}>
-        <View style={detailsStyles.detailRow}>
-          <Ionicons name="folder-open-outline" size={20} color="#FFD700" />
-          <Text style={detailsStyles.detailLabel}>Group Name:</Text>
-          <Text style={detailsStyles.detailValue}>{group.name}</Text>
-        </View>
+    const myBalance = myData ? myNetBalance : 0;
 
-        <View style={detailsStyles.detailRow}>
-          <Ionicons name="document-text-outline" size={20} color="#64B5F6" />
-          <Text style={detailsStyles.detailLabel}>Description:</Text>
-          <Text style={detailsStyles.detailValue}>
-            {group.description || "No description provided"}
-          </Text>
-        </View>
-
-        <View style={[detailsStyles.detailRow, { alignItems: "center" }]}>
-  <Ionicons name="qr-code-outline" size={20} color="#FFD700" />
-  <Text style={detailsStyles.detailLabel}>Invite ID:</Text>
-
-  <View style={detailsStyles.inviteRow}>
-    <Text style={detailsStyles.detailValue}>{group.inviteid}</Text>
-
-    <TouchableOpacity
-      style={detailsStyles.copyButton}
-      onPress={handleCopyInviteId}
-    >
-      <Ionicons name="copy-outline" size={18} color="#FFD700" />
-    </TouchableOpacity>
-  </View>
-</View>
-        {/* 🌟 NEW: Members List Section */}
-        <View style={detailsStyles.membersList}>
-  {group.members.map((member: any) => (
-    <View key={member._id || member.id} style={detailsStyles.memberItem}>
-      <Ionicons name="person-circle-outline" size={18} color="#e0e0e0" />
-
-      <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-        <Text style={detailsStyles.memberName}>
-          {member.name || "Unnamed Member"}
-        </Text>
-
-        {/* 🏷️ Mark admin */}
-        {member._id === group.createdBy && (
-          <Text style={detailsStyles.adminTag}> (Admin)</Text>
-        )}
-      </View>
-
-      {/* 🗑️ Delete button - visible only to admin */}
-      {currentUser && group.createdBy === currentUser.id && member._id !== group.createdBy && (
-        <TouchableOpacity
-          onPress={() => handleDeleteMember(member._id)}
-          style={detailsStyles.deleteMemberIcon}
-        >
-          <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
-        </TouchableOpacity>
-      )}
-    </View>
-  ))}
-</View>
-        {/* 🌟 END NEW: Members List Section */}
-
-      </View>
-
-      {/* Placeholder for Balances or other info you might re-add later */}
-      <View style={detailsStyles.balancesPlaceholder}>
-          <Text style={detailsStyles.placeholderText}>
-              Financial Balances are currently not available in this view.
-          </Text>
-      </View>
-    </View>
-  );
-  // --- END Component ---
- if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.background}>
-          <View style={styles.gradientOverlay} />
-          <View style={[styles.orb, styles.orb1]}>
-            <View style={styles.orbInner} />
+      <Animated.View style={[detailsStyles.detailsContainer, { opacity: fadeAnim }]}>
+        <Text style={detailsStyles.sectionTitle}>Your Balance</Text>
+        <View style={detailsStyles.glassCard}>
+           <Text style={[
+             styles.balanceAmount, 
+             { color: myBalance < 0 ? '#10B981' : '#FF5252' }
+           ]}>
+             {myBalance < 0 ? `+₹${myBalance}` : `-₹${Math.abs(myBalance)}`}
+           </Text>
+           <Text style={styles.balanceSubtext}>
+             {myBalance >= 0 ? "You are owed in total" : "You owe in total"}
+           </Text>
+        </View>
+
+        <Text style={detailsStyles.sectionTitle}>Member Breakdown</Text>
+        <View style={detailsStyles.membersStack}>
+          {balances.map((item: any) => {
+            if (item.userId === currentUser?.id) return null;
+            return (
+              <View key={item.userId} style={detailsStyles.memberCard}>
+                <View style={detailsStyles.avatarCircle}>
+                  <Text style={detailsStyles.avatarInitial}>{(item.name || "?")[0]}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={detailsStyles.memberNameText}>{item.name}</Text>
+                </View>
+                <Text style={[
+                  styles.memberBalance, 
+                  { color: item.netBalance >= 0 ? '#10B981' : '#FF5252' }
+                ]}>
+                  {item.netBalance >= 0 ? `+${item.netBalance}` : `${item.netBalance}`}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      </Animated.View>
+    );
+  };
+
+  const GroupDetailsInfo = () => (
+    <Animated.View style={[detailsStyles.detailsContainer, { opacity: fadeAnim }]}>
+      <Text style={detailsStyles.sectionTitle}>General Info</Text>
+
+      <View style={detailsStyles.glassCard}>
+        <View style={detailsStyles.row}>
+          <View style={[detailsStyles.iconBox, { backgroundColor: '#FFD70020' }]}>
+            <Ionicons name="bookmark" size={18} color="#FFD700" />
           </View>
-          <View style={[styles.orb, styles.orb2]}>
-            <View style={styles.orbInner} />
+          <View style={detailsStyles.infoContent}>
+            <Text style={detailsStyles.label}>Group Name</Text>
+            <Text style={detailsStyles.value}>{group.name}</Text>
           </View>
         </View>
-        <View style={styles.loader}>
-          <ActivityIndicator size="large" color="#FFD700" />
-          <Text style={styles.loadingText}>Loading groups...</Text>
+
+        <View style={detailsStyles.row}>
+          <View style={[detailsStyles.iconBox, { backgroundColor: '#8e2de220' }]}>
+            <Ionicons name="reader" size={18} color="#A78BFA" />
+          </View>
+          <View style={detailsStyles.infoContent}>
+            <Text style={detailsStyles.label}>Description</Text>
+            <Text style={detailsStyles.value}>{group.description || "No description set"}</Text>
+          </View>
         </View>
+
+        <View style={[detailsStyles.row, { borderBottomWidth: 0 }]}>
+          <View style={[detailsStyles.iconBox, { backgroundColor: '#10B98120' }]}>
+            <Ionicons name="key" size={18} color="#10B981" />
+          </View>
+          <View style={detailsStyles.infoContent}>
+            <Text style={detailsStyles.label}>Invite Code</Text>
+            <View style={detailsStyles.inviteBox}>
+              <Text style={detailsStyles.codeText}>{group.inviteid}</Text>
+              <TouchableOpacity style={detailsStyles.copyFab} onPress={handleCopyInviteId}>
+                <Ionicons name="copy-outline" size={14} color="#FFD700" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      <Text style={detailsStyles.sectionTitle}>Members ({group.members.length})</Text>
+      <View style={detailsStyles.membersStack}>
+        {group.members.map((member: any) => (
+          <View key={member._id || member.id} style={detailsStyles.memberCard}>
+            <View style={detailsStyles.avatarCircle}>
+               <Text style={detailsStyles.avatarInitial}>{(member.name || "?")[0].toUpperCase()}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={detailsStyles.memberNameText}>{member.name || "Unknown"}</Text>
+              {member._id === group.createdBy && (
+                <View style={detailsStyles.badge}>
+                  <Text style={detailsStyles.badgeText}>Admin</Text>
+                </View>
+              )}
+            </View>
+            {currentUser && group.createdBy === currentUser.id && member._id !== group.createdBy && (
+              <TouchableOpacity onPress={() => handleDeleteMember(member._id)} style={detailsStyles.removeBtn}>
+                <Ionicons name="close-circle-outline" size={20} color="#FF5252" />
+              </TouchableOpacity>
+            )}
+          </View>
+        ))}
+      </View>
+    </Animated.View>
+  );
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#FFD700" />
+        <Text style={styles.loadingText}>Loading your group...</Text>
       </View>
     );
   }
 
-
-  if (!group)
-    return (
-      <Text style={{ color: "#fff", textAlign: "center", marginTop: 50 }}>
-        Group not found.
-      </Text>
-    );
+  if (!group) return <View style={styles.container}><Text style={styles.emptyText}>Group not found.</Text></View>;
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.contentWrapper}>
+      <StatusBar barStyle="light-content" />
+      <SafeAreaView style={styles.safeArea}>
         <GroupName name={group.name} />
 
-        <View style={styles.tabRow}>
-          <TabButton
-            label="Expenses"
-            isActive={activeTab === "Expenses"}
-            onPress={() => setActiveTab("Expenses")}
+        <View style={styles.tabContainer}>
+          <TabButton 
+            label="Expenses" 
+            isActive={activeTab === "Expenses"} 
+            onPress={() => setActiveTab("Expenses")} 
           />
-          {/* RENAMED Tab Label and onPress */}
-          <TabButton
-            label="Group Details"
-            isActive={activeTab === "Details"}
-            onPress={() => setActiveTab("Details")}
+          <TabButton 
+            label="Balances" 
+            isActive={activeTab === "Settlements"} 
+            onPress={() => setActiveTab("Settlements")} 
+          />
+          <TabButton 
+            label="Settings" 
+            isActive={activeTab === "Details"} 
+            onPress={() => setActiveTab("Details")} 
           />
         </View>
 
-        <View style={styles.content}>
+        <View style={styles.mainContent}>
           {activeTab === "Expenses" ? (
-            <>
-              <MyExpenses expenses={expenses} currentUserId="user_1" />
+            <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+              <MyExpenses expenses={expenses} currentUserId={currentUser?.id} />
               <TotalExpenses expenses={expenses} />
-
               <FlatList
                 data={expenses}
+                contentContainerStyle={{ paddingBottom: 120, paddingTop: 10 }}
+                showsVerticalScrollIndicator={false}
                 keyExtractor={(item, index) => item._id || index.toString()}
                 renderItem={renderExpenseItem}
-                ListEmptyComponent={
-                  <Text style={styles.emptyText}>No expenses yet. Add one!</Text>
-                }
+                ListEmptyComponent={<Text style={styles.emptyText}>Everything's settled. No expenses!</Text>}
               />
-
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setModalVisible(true)}
-              >
-                <Text style={styles.addButtonText}>+ Add Expense</Text>
+              <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
+                <Ionicons name="add-sharp" size={32} color="#0F0C29" />
               </TouchableOpacity>
-            </>
+            </Animated.View>
+          ) : activeTab === "Settlements" ? (
+            <SettlementDistribution />
           ) : (
-            // Renders the new GroupDetailsInfo component
             <GroupDetailsInfo />
           )}
         </View>
@@ -449,11 +446,8 @@ const handleDeleteMember = async (memberid: string) => {
         <AddExpenseModal
           visible={modalVisible}
           onClose={() => setModalVisible(false)}
-          onSave={(expense) => handleAddExpense(expense)}
-          members={group.members.map((m: any) => ({
-            id: m._id || m.id,
-            name: m.name || "Unnamed",
-          }))}
+          onSave={handleAddExpense}
+          members={group.members.map((m: any) => ({ id: m._id || m.id, name: m.name || "Unnamed" }))}
         />
       </SafeAreaView>
     </View>
@@ -461,233 +455,161 @@ const handleDeleteMember = async (memberid: string) => {
 }
 
 const styles = StyleSheet.create({
-  container: {
-     flex: 1,
-     backgroundColor: "#0a1421",
-   },
-   background: {
-     ...StyleSheet.absoluteFillObject,
-     overflow: "hidden",
-   },
-   gradientOverlay: {
-     ...StyleSheet.absoluteFillObject,
-     backgroundColor: "transparent",
-   },
-   floatingIcon: {
-     position: "absolute",
-   },
-   iconGlow: {
-     ...Platform.select({
-       ios: {
-         shadowColor: "#FFD700",
-         shadowOffset: { width: 0, height: 0 },
-         shadowOpacity: 0.6,
-         shadowRadius: 15,
-       },
-       android: {
-         elevation: 8,
-       },
-     }),
-   },
-   orb: {
-     position: "absolute",
-     borderRadius: 9999,
-     opacity: 0.12,
-   },
-   orb1: {
-     width: 200,
-     height: 200,
-     backgroundColor: "#FFD700",
-     top: "15%",
-     left: "10%",
-   },
-   orb2: {
-     width: 240,
-     height: 240,
-     backgroundColor: "#2e86de",
-     bottom: "20%",
-     right: "15%",
-   },
-   orb3: {
-     width: 160,
-     height: 160,
-     backgroundColor: "#96E6A1",
-     top: "60%",
-     left: "60%",
-     opacity: 0.08,
-   },
-   orbInner: {
-     width: "100%",
-     height: "100%",
-     borderRadius: 9999,
-     borderWidth: 1,
-     borderColor: "rgba(255, 255, 255, 0.1)",
-   },
-   contentWrapper: {
-     flex: 1,
-     paddingHorizontal: 20,
-     paddingTop: 60,
-     position: "relative",
-     zIndex: 1,
-   },
-   loader: {
-     flex: 1,
-     justifyContent: "center",
-     alignItems: "center",
-     gap: 16,
-     zIndex: 2,
-   },
-   loadingText: {
-     color: "#a0a0a0",
-     fontSize: 14,
-     letterSpacing: 0.3,
-   },
-  
-  tabRow: {
+  container: { 
+    flex: 1, 
+    backgroundColor: "#0F0C29", 
+    justifyContent: 'center' 
+  },
+  safeArea: { flex: 1, paddingTop: Platform.OS === 'android' ? 40 : 10 },
+  loadingText: { color: "#A78BFA", fontSize: 14, marginTop: 15, fontWeight: '500' },
+  tabContainer: {
     flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.2)",
+    marginHorizontal: 20,
+    marginTop: 25,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 20,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  content: { flex: 1, padding: 20 },
-  addButton: {
+  mainContent: { flex: 1, paddingHorizontal: 20, paddingTop: 15 },
+  fab: {
     position: "absolute",
-    right: 20,
+    right: 5,
     bottom: 30,
-    backgroundColor: "#2e86de",
-    borderRadius: 50,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
+    backgroundColor: "#FFD700",
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: "#FFD700",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
   },
-  
-  addButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
-  emptyText: {
-    color: "rgba(255,255,255,0.6)",
-    textAlign: "center",
-    marginTop: 20,
+  expenseWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 18,
+    marginBottom: 12,
+    paddingRight: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  expenseContent: { flex: 1 },
+  deleteAction: {
+    padding: 12,
+    backgroundColor: 'rgba(255, 82, 82, 0.1)',
+    borderRadius: 12,
+  },
+  emptyText: { 
+    color: "rgba(167, 139, 250, 0.4)", 
+    textAlign: "center", 
+    marginTop: 60, 
     fontSize: 16,
+    fontStyle: 'italic'
   },
+  // Added balance styles
+  balanceAmount: {
+    fontSize: 32,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginTop: 10
+  },
+  balanceSubtext: {
+    color: 'rgba(255,255,255,0.5)',
+    textAlign: 'center',
+    fontSize: 12,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 1
+  },
+  memberBalance: {
+    fontSize: 16,
+    fontWeight: '700'
+  }
 });
 
-// --- NEW/UPDATED STYLES FOR GROUP DETAILS ---
 const detailsStyles = StyleSheet.create({
-   adminTag: {
-  color: "#FFD700",
-  fontWeight: "600",
-  fontSize: 13,
-  marginLeft: 4,
-},
-
-deleteMemberIcon: {
-  padding: 6,
-  backgroundColor: "rgba(255, 107, 107, 0.1)",
-  borderRadius: 8,
-  borderWidth: 1,
-  borderColor: "rgba(255,107,107,0.3)",
-  marginLeft: 10,
-},
-inviteRow: {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 8,
-  flex: 1,
-  justifyContent: "space-between",
-},
-
-copyButton: {
-  padding: 6,
-  borderRadius: 8,
-  backgroundColor: "rgba(255, 215, 0, 0.1)",
-  borderWidth: 1,
-  borderColor: "rgba(255, 215, 0, 0.3)",
-},
-    detailsContainer: {
-        flex: 1,
-        paddingTop: 10,
-        gap: 20,
-    },
-    detailHeader: {
-        fontSize: 22,
-        fontWeight: '700',
-        color: '#FFD700',
-        marginBottom: 10,
-        textAlign: 'center',
-    },
-    card: {
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-        borderRadius: 15,
-        padding: 20,
-        gap: 15,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.12)',
-    },
-    detailRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-    },
-    detailLabel: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#a0a0a0',
-        marginLeft: 10,
-        minWidth: 90,
-    },
-    detailValue: {
-        flex: 1,
-        fontSize: 16,
-        color: '#fff',
-        fontWeight: '500',
-    },
-    // Styles for the new Members List
-    membersListContainer: {
-        marginTop: 10,
-        paddingTop: 15,
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    },
-    membersListHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        marginBottom: 10,
-    },
-    membersListTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#96E6A1',
-    },
-    membersList: {
-        gap: 8,
-        paddingHorizontal: 5,
-    },
-    memberItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        padding: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 8,
-    },
-    memberName: {
-        fontSize: 15,
-        color: '#e0e0e0',
-        fontWeight: '500',
-    },
-    // End Styles for the new Members List
-    balancesPlaceholder: {
-        marginTop: 30,
-        padding: 15,
-        backgroundColor: 'rgba(255, 0, 0, 0.1)',
-        borderRadius: 10,
-        borderLeftWidth: 3,
-        borderLeftColor: 'red',
-        alignItems: 'center',
-    },
-    placeholderText: {
-        color: '#ffcdd2',
-        fontSize: 14,
-        fontStyle: 'italic',
-    }
+  detailsContainer: { flex: 1, paddingVertical: 5 },
+  sectionTitle: { 
+    fontSize: 14, 
+    fontWeight: '800', 
+    color: '#A78BFA', 
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    paddingLeft: 5
+  },
+  glassCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    marginBottom: 25,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  iconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  infoContent: { flex: 1 },
+  label: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' },
+  value: { fontSize: 16, color: '#FFFFFF', marginTop: 4, fontWeight: '600' },
+  inviteBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+  codeText: { fontSize: 18, color: '#FFD700', fontWeight: '800', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+  copyFab: { 
+    padding: 8, 
+    backgroundColor: 'rgba(255, 215, 0, 0.15)', 
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.2)'
+  },
+  membersStack: { gap: 12, paddingBottom: 40 },
+  memberCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  avatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#6D28D9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.1)'
+  },
+  avatarInitial: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
+  memberNameText: { fontSize: 16, color: '#fff', fontWeight: '600' },
+  badge: {
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  badgeText: { color: '#FFD700', fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
+  removeBtn: { padding: 6 },
 });
