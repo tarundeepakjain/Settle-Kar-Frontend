@@ -23,7 +23,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { getAccessToken } from "@/helper/auth";
 import { supabase } from "@/utils/supabase";
-
+import { useNavigation, useRoute } from "@react-navigation/native";
 // Added "Settlements" to ActiveTab type
 type ActiveTab = "Expenses" | "Details" | "Settlements";
 
@@ -38,6 +38,7 @@ type Group = {
   name: string;
   description?: string;
   members: Member[];
+  is_active:Boolean;
   code?: string;
   inviteid: string;
   createdBy?: string;
@@ -45,6 +46,7 @@ type Group = {
 
 export default function GroupDetails({ route }: { route: any }) {
   const { groupId } = route.params;
+  const navigation = useNavigation<any>();
   const [group, setGroup] = useState<any>(null);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [balances, setBalances] = useState<any[]>([]); // New state for backend balances
@@ -53,7 +55,6 @@ export default function GroupDetails({ route }: { route: any }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [groupSize, setGroupSize] = useState<number>(0);
-  
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -89,6 +90,7 @@ export default function GroupDetails({ route }: { route: any }) {
         name: group.group_name,
         description: group.description,
         inviteid: group.invite_id,
+        is_active:group.is_active,
         code: group.invite_id,
         createdBy: group.created_by,
         members: (group.Group_members || []).map((m: any) => ({
@@ -118,6 +120,12 @@ export default function GroupDetails({ route }: { route: any }) {
           },
         }
       );
+      if(!res.ok){
+        Alert.alert("Error","You are not a part of that group");
+        navigation.navigate("MainTabs", {
+  screen: "Groups",
+});
+      }
       const data = await res.json();
       const normalized = normalizeGroups([data]);
       setGroupSize(normalized[0].members.length);
@@ -214,31 +222,167 @@ export default function GroupDetails({ route }: { route: any }) {
       ]
     );
   };
+ const handleLeaveGroup = () => {
+ const leavegrp=async () => {
+          try {
+            const token = await getAccessToken();
+            if (!token) {
+              Alert.alert("Auth Error", "Please login again");
+              return;
+            }
 
-  const handleDeleteMember = async (memberid: string) => {
-    Alert.alert("Remove Member", "Kick this member from the group?", [
+            const res = await fetch(
+              `${process.env.EXPO_PUBLIC_BACKEND_URL}/group/leave`,
+              {
+                method: "DELETE", 
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ group_id: groupId }),
+              }
+            );
+
+            if (!res.ok) {
+              const err = await res.json();
+              Alert.alert("Error", err.message || "Failed to leave group");
+              return;
+            }
+            navigation.navigate("MainTabs", {
+  screen: "Groups",
+});
+
+
+            Alert.alert("Success", "You left the group");
+          } catch (e) {
+            Alert.alert("Error", "Something went wrong");
+          }
+}
+   if (Platform.OS === "web") {
+    const ok = window.confirm("Are you sure you want to leave this group?");
+    if (ok){
+     leavegrp()
+    }
+  } 
+else{
+Alert.alert(
+    "Leave Group",
+    "Are you sure you want to leave this group?",
+    [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Remove",
+        text: "Leave",
         style: "destructive",
-        onPress: async () => {
+        onPress:leavegrp
+      },
+    ]
+  );
+}
+
+
+
+};
+
+const changeStatus=async()=>{
+  const change=async()=>{
+try {
+   const token = await getAccessToken();
+            if (!token) {
+              Alert.alert("Auth Error", "Please login again");
+              return;
+            }
+
+            const res = await fetch(
+              `${process.env.EXPO_PUBLIC_BACKEND_URL}/group/change`,
+              {
+                method: "POST", 
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ group_id: groupId }),
+              }
+            );
+
+            if (!res.ok) {
+              const err = await res.json();
+              Alert.alert("Error", err.message || "Failed to change group active status");
+              return;
+            }
+             fetchGroupDetails();
+          
+  
+} catch (e) {
+   Alert.alert("Error", "Something went wrong");
+}
+  }
+   const status=group.is_active;
+   const word=(status?"Abandon":"Resume");
+ if (Platform.OS === "web") {
+ 
+    const ok = window.confirm(`Are you sure you want to ${word} this group? (If group is Abandoned then no one will be able to post new expenses until Resumed)`);
+    if (ok){
+     change()
+    }
+  } 
+else{
+Alert.alert(
+    `${word} Group`,
+    `Are you sure you want to ${word} this group? (If group is Abandoned then no one will be able to post new expenses until Resumed)`,
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Leave",
+        style: "destructive",
+        onPress:change
+      },
+    ]
+  );
+}
+}
+
+  const handleDeleteMember = async (memberid: string) => {
+    const remove=async () => {
           try {
-            const token = await AsyncStorage.getItem("accessToken");
-            const res = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/group/${groupId}/delete-member`, {
+            const token = await getAccessToken();
+            const res = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/group/remove`, {
               method: "DELETE",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-              body: JSON.stringify({ memberid }),
+              body: JSON.stringify({ group_id:groupId,user_id:memberid }),
             });
             if (res.ok) {
-              setGroup((prev: any) => ({
-                ...prev,
-                members: prev.members.filter((m: any) => m._id !== memberid),
-              }));
+              Alert.alert("Success","1 User kicked");
+               setGroup((prev: any) => ({
+      ...prev,
+      members: prev.members.filter(
+        (m: any) => m._id !== memberid
+      ),
+    }));
             }
           } catch (err) { Alert.alert("Error", "Something went wrong."); }
-        },
+        };
+         if (Platform.OS === "web") {
+    const ok = window.confirm("Are you sure you want to leave this group?");
+    if (ok){
+     remove()
+    }
+  } 
+else{
+Alert.alert(
+    "Kick member",
+    "Are you sure you want to Kick this member?",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Leave",
+        style: "destructive",
+        onPress:remove
       },
-    ]);
+    ]
+  );
+}
+    
+    
   };
 
   const renderExpenseItem = ({ item }: { item: any }) => {
@@ -316,9 +460,10 @@ export default function GroupDetails({ route }: { route: any }) {
       </Animated.View>
     );
   };
+  const isAdmin = !!(currentUser && group && currentUser.id === group.createdBy);
 
   const GroupDetailsInfo = () => (
-    <Animated.View style={[detailsStyles.detailsContainer, { opacity: fadeAnim }]}>
+    <Animated.ScrollView style={[detailsStyles.detailsContainer, { opacity: fadeAnim }]}>
       <Text style={detailsStyles.sectionTitle}>General Info</Text>
 
       <View style={detailsStyles.glassCard}>
@@ -357,6 +502,7 @@ export default function GroupDetails({ route }: { route: any }) {
           </View>
         </View>
       </View>
+     
 
       <Text style={detailsStyles.sectionTitle}>Members ({group.members.length})</Text>
       <View style={detailsStyles.membersStack}>
@@ -378,10 +524,45 @@ export default function GroupDetails({ route }: { route: any }) {
                 <Ionicons name="close-circle-outline" size={20} color="#FF5252" />
               </TouchableOpacity>
             )}
+                
+          
           </View>
+  
+          
         ))}
+            {!isAdmin && (
+  <TouchableOpacity
+    style={detailsStyles.leaveGroupBtn}
+    onPress={handleLeaveGroup}
+  >
+    <Ionicons name="exit-outline" size={20} color="#fff" />
+    <Text style={detailsStyles.leaveGroupText}>Leave Group</Text>
+  </TouchableOpacity>
+)}
+  {isAdmin && (
+  group.is_active ? (
+      <>
+    <TouchableOpacity
+    style={detailsStyles.leaveGroupBtn}
+    onPress={changeStatus} >
+    <Text style={detailsStyles.leaveGroupText}>Abandon Group</Text>
+    </TouchableOpacity>
+    </>
+):(
+    <>
+    <TouchableOpacity
+    style={detailsStyles.resumeGroupBtn}
+    onPress={changeStatus}
+  >
+ <Text style={detailsStyles.ResumeGroupText}>Resume Group</Text>
+   </TouchableOpacity>
+    </>
+)
+)}
       </View>
-    </Animated.View>
+
+      
+    </Animated.ScrollView>
   );
 
   if (loading) {
@@ -442,13 +623,14 @@ export default function GroupDetails({ route }: { route: any }) {
             <GroupDetailsInfo />
           )}
         </View>
-
+      {group.is_active &&
         <AddExpenseModal
           visible={modalVisible}
           onClose={() => setModalVisible(false)}
           onSave={handleAddExpense}
           members={group.members.map((m: any) => ({ id: m._id || m.id, name: m.name || "Unnamed" }))}
         />
+      }
       </SafeAreaView>
     </View>
   );
@@ -534,6 +716,38 @@ const styles = StyleSheet.create({
 });
 
 const detailsStyles = StyleSheet.create({
+  leaveGroupBtn: {
+  marginTop: 24,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: "#FF5252",
+  paddingVertical: 14,
+  borderRadius: 12,
+},
+  resumeGroupBtn: {
+  marginTop: 24,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: "#09b71eff",
+  paddingVertical: 14,
+  borderRadius: 12,
+},
+
+leaveGroupText: {
+  color: "#fff",
+  fontSize: 16,
+  fontWeight: "600",
+  marginLeft: 8,
+},
+ResumeGroupText: {
+  color: "#fff",
+  fontSize: 16,
+  fontWeight: "600",
+  marginLeft: 8,
+},
+
   detailsContainer: { flex: 1, paddingVertical: 5 },
   sectionTitle: { 
     fontSize: 14, 

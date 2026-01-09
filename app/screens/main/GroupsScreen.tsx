@@ -132,8 +132,8 @@ export default function GroupsScreen() {
   }, [codeModalVisible, fadeAnim, scaleAnim]);
   
   const JoinGroup = async () => {
-    console.log("join grp called");
-
+    if(isJoining) return;
+   setIsJoining(true);
     try {
       let token = await getAccessToken();
       if (!token) {
@@ -155,8 +155,7 @@ export default function GroupsScreen() {
       );
       const d=await response.json();
       console.log(response.status);
-      setIsJoining(true);
-      
+    
       if (!response.ok) {
         if(d.message==="group not found"){
         Alert.alert(
@@ -172,10 +171,7 @@ export default function GroupsScreen() {
           "User already in group",
           [{ text: "Try Again" }]
         );
-        const updatedGroups = await fetchGroups();
-        if (updatedGroups) setGroups(updatedGroups);    
-        setCodeModalVisible(false); // <-- Close the modal on success
-        setInputCode("");
+      
         }
       
         
@@ -184,7 +180,8 @@ export default function GroupsScreen() {
       Alert.alert(
         "Success!",
         `You have joined the group with code ${inputCode}`,);
-
+      
+      
       setIsJoining(false);
       const loadGroups = async () => {
         const data = await fetchGroups();
@@ -192,6 +189,8 @@ export default function GroupsScreen() {
         setLoading(false);
       };
       loadGroups();
+        setCodeModalVisible(false); // <-- Close the modal on success
+        setInputCode("");
 
     } catch (error) {
       console.error(error);
